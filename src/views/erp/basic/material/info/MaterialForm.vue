@@ -16,7 +16,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="编码" prop="barCode">
-            <el-input v-model="formData.barCode" readonly placeholder="保存后自动生成编码" />
+            <el-input v-model="formData.barCode" placeholder="请输入编码，留空则自动生成" />
           </el-form-item>
         </el-col>
         <el-row :gutter="20">

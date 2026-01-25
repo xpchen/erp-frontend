@@ -283,12 +283,15 @@ const submitForm = async () => {
 
 /** 重置表单 */
 const resetForm = () => {
+  // 获取当前时间的时间戳
+  const currentTime = new Date().getTime();
   formData.value = {
     id: undefined,
     customerId: undefined,
     accountId: undefined,
     saleUserId: undefined,
-    outTime: undefined,
+    // 新增时将出库时间设为当前时间
+    outTime: formType.value === 'create' ? currentTime : undefined,
     remark: undefined,
     fileUrl: undefined,
     discountPercent: 0,

@@ -167,8 +167,6 @@ const open = async (type: string, id?: number) => {
   // 加载部门树
   deptList.value = handleTree(await DeptApi.getSimpleDeptList())
   await getUserInfo()
-  formData.value.personId = userInfo.value.id
-  formData.value.deptId = userInfo.value.dept.id
   userList.value = await UserApi.getSimpleUserList()
  
   
@@ -180,6 +178,10 @@ const open = async (type: string, id?: number) => {
     } finally {
       formLoading.value = false
     }
+  } else {
+    // 新增时，设置默认值
+    formData.value.personId = userInfo.value.id
+    formData.value.deptId = userInfo.value.dept.id
   }
 }
 defineExpose({ open }) // 提供 open 方法，用于打开弹窗
@@ -227,7 +229,7 @@ const resetForm = () => {
     personId: undefined,
     isUrgent: undefined,
     deptId: undefined,
-    demandType: 0,
+    demandType: '0',
     totalTax: undefined,
     totalTaxAmount: undefined,
     status: undefined,

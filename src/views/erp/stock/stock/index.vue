@@ -45,6 +45,7 @@
 
   <!-- 列表 -->
   <ContentWrap>
+    <StockForm ref="formRef" @success="getList" />
     <el-table v-loading="loading" :data="list" :stripe="true" :show-overflow-tooltip="true">
       <el-table-column label="物料名称" align="center" prop="materialName" />
       <el-table-column label="物料单位" align="center" prop="unitName" />
@@ -57,6 +58,30 @@
         :formatter="erpCountTableColumnFormatter"
       />
       <el-table-column label="仓库" align="center" prop="warehouseName" />
+      <el-table-column label="存放位置" align="center" prop="location" min-width="150">
+        <template #default="{ row }">
+          <span v-if="row.location">{{ row.location }}</span>
+          <span v-else style="color: #999">未设置</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" align="center" fixed="right" width="180">
+        <template #default="{ row }">
+          <!-- <el-button
+            link
+            type="primary"
+            @click="handleViewDetail(row)"
+          >
+            查看
+          </el-button> -->
+          <el-button
+            link
+            type="primary"
+            @click="openForm('update', row)"
+          >
+            编辑位置
+          </el-button>
+        </template>
+      </el-table-column>
     </el-table>
     <!-- 分页 -->
     <Pagination
@@ -73,6 +98,7 @@ import download from '@/utils/download'
 import { StockApi, StockVO } from '@/api/erp/stock/stock'
 import { erpCountTableColumnFormatter } from '@/utils'
 import { useBasicData } from '@/api/erp/basic/common'
+import StockForm from './StockForm.vue'
 const { materialItem, warehouseItem } = useBasicData()
 
 /** ERP 物料库存列表 */
@@ -118,8 +144,21 @@ const resetQuery = () => {
 
 /** 添加/修改操作 */
 const formRef = ref()
-const openForm = (type: string, id?: number) => {
-  formRef.value.open(type, id)
+const openForm = (type: string, row?: StockVO) => {
+  formRef.value.open(type, row)
+}
+
+/** 查看详情 */
+const handleViewDetail = (row: StockVO) => {
+  // 跳转到库存明细页面，传递物料和仓库参数
+  const router = useRouter()
+  router.push({
+    path: '/erp/stock/record',
+    query: {
+      materialId: row.materialId,
+      warehouseId: row.warehouseId
+    }
+  })
 }
 
 /** 删除按钮操作 */

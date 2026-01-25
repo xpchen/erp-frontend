@@ -93,6 +93,13 @@
           </el-form-item>
         </template>
       </el-table-column>
+      <el-table-column label="存放位置" min-width="150">
+        <template #default="{ row, $index }">
+          <el-form-item :prop="`${$index}.location`" class="mb-0px!">
+            <el-input v-model="row.location" placeholder="请输入存放位置" />
+          </el-form-item>
+        </template>
+      </el-table-column>
       <el-table-column align="center" fixed="right" label="操作" width="60">
         <template #default="{ $index }">
           <el-button @click="handleDelete($index)" link>—</el-button>
@@ -187,7 +194,8 @@ const handleAdd = () => {
     stockCount: undefined,
     count: 1,
     totalPrice: undefined,
-    remark: undefined
+    remark: undefined,
+    location: undefined // 存放位置
   }
   formData.value.push(row)
 }
