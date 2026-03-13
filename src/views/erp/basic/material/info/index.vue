@@ -18,6 +18,15 @@
           class="!w-240px"
         />
       </el-form-item>
+      <el-form-item label="规格" prop="standard">
+        <el-input
+          v-model="queryParams.standard"
+          placeholder="请输入规格（模糊）"
+          clearable
+          @keyup.enter="handleQuery"
+          class="!w-240px"
+        />
+      </el-form-item>
       <el-form-item label="物料类别" prop="categoryId">
         <el-select v-model="queryParams.categoryId" class="!w-240px" clearable  filterable placeholder="请选择类别">
           <el-option
@@ -151,6 +160,7 @@ const queryParams = reactive({
   pageNo: 1,
   pageSize: 50,
   name: undefined,
+  standard: undefined as string | undefined,
   categoryId: undefined
 })
 const queryFormRef = ref() // 搜索的表单

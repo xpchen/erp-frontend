@@ -14,7 +14,7 @@
           <el-form-item :prop="`${$index}.materialNumber`" :rules="formRules.materialNumber" class="mb-0px!">
             <el-input v-model="row.materialNumber" placeholder="请输入物料编码" @click="openMaterialDrawer(row)"/>
             <el-drawer v-model="drawer" title="物料选择" :direction="direction" size="48%" :modal-append-to-body="true" :append-to-body="true">
-                <QueryMaterialIndex @select="handleMaterialSelect" />
+                <QueryMaterialIndex :for-purchase-request="true" @select="handleMaterialSelect" />
             </el-drawer>
           </el-form-item>
         </template>
@@ -23,6 +23,13 @@
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.materialName`" class="mb-0px!">
             <el-input v-model="row.materialName" placeholder="" readonly/>
+          </el-form-item>
+        </template>
+      </el-table-column>
+      <el-table-column label="规格" min-width="180">
+        <template #default="{ row }">
+          <el-form-item class="mb-0px!">
+            <el-input v-model="row.materialStandard" placeholder="" readonly/>
           </el-form-item>
         </template>
       </el-table-column>
@@ -84,7 +91,7 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="需求日期" min-width="120">
+      <el-table-column label="需求日期" min-width="160">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.requireDate`"  class="mb-0px!">
             <el-date-picker
@@ -92,11 +99,12 @@
               type="date"
               value-format="YYYY-MM-DD"
               placeholder=""
+              class="!w-1/1"
             />
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="建议交货日期" min-width="120">
+      <el-table-column label="建议交货日期" min-width="160">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.advicePurchaseDate`"  class="mb-0px!">
             <el-date-picker
@@ -104,6 +112,7 @@
               type="date"
               value-format="YYYY-MM-DD"
               placeholder=""
+              class="!w-1/1"
             />
           </el-form-item>
         </template>
@@ -241,6 +250,7 @@ const handleAdd = () => {
     requestId: undefined,
     materialId: undefined,
     materialName: undefined,
+    materialStandard: undefined,
     materialNumber: undefined,
     unitId: undefined,
     qty: undefined,
@@ -268,11 +278,11 @@ const handleDelete = (index) => {
 }
 
 const handleMaterialSelect = (material: MaterialDTO) => {
-  debugger;
   if (currentEditRow.value) {
     currentEditRow.value.materialNumber = material.barCode // 设置物料编码
     currentEditRow.value.materialId = material.id // 设置物料内码
     currentEditRow.value.materialName = material.name // 设置物料名称
+    currentEditRow.value.materialStandard = material.standard // 设置规格
     currentEditRow.value.unitId = material.unitId
     currentEditRow.value.price = material.purchasePrice
   }

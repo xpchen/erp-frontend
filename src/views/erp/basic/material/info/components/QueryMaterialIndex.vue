@@ -18,6 +18,15 @@
           class="!w-220px"
         />
       </el-form-item>
+      <el-form-item label="规格" prop="standard">
+        <el-input
+          v-model="queryParams.standard"
+          placeholder="请输入规格（模糊）"
+          clearable
+          @keyup.enter="handleQuery"
+          class="!w-220px"
+        />
+      </el-form-item>
       <el-form-item label="物料类别" prop="categoryId">
         <el-select v-model="queryParams.categoryId" class="!w-220px" clearable filterable placeholder="请选择类别">
           <el-option
@@ -47,35 +56,31 @@
     highlight-current-row
     :current-row-key="currentRowKey"
     :row-class-name="tableRowClassName">
-      <el-table-column label="条码" align="center" prop="barCode" width="180"/>
-      <el-table-column label="名称" align="center" prop="name" width="180"/>
-      <el-table-column label="规格" align="center" prop="standard" width="180"/>
-      <el-table-column label="分类" align="center" prop="categoryName" />
-      <el-table-column label="单位" align="center" prop="unitName" />
+      <el-table-column label="条码" align="center" prop="barCode" min-width="160"/>
+      <el-table-column label="名称" align="center" prop="name" min-width="180"/>
+      <el-table-column label="规格" align="center" prop="standard" :min-width="props.forPurchaseRequest ? 220 : 200"/>
+      <el-table-column label="分类" align="center" prop="categoryName" min-width="140"/>
+      <el-table-column v-if="props.forPurchaseRequest" label="单位" align="center" prop="unitName" min-width="80"/>
       <el-table-column
+        v-if="false"
         label="采购价格"
         align="center"
         prop="purchasePrice"
         :formatter="erpPriceTableColumnFormatter"
       />
       <el-table-column
+        v-if="false"
         label="销售价格"
         align="center"
         prop="salePrice"
         :formatter="erpPriceTableColumnFormatter"
       />
       <el-table-column
+        v-if="false"
         label="最低价格"
         align="center"
         prop="minPrice"
         :formatter="erpPriceTableColumnFormatter"
-      />
-      <el-table-column
-        label="创建时间"
-        align="center"
-        prop="createTime"
-        :formatter="dateFormatter"
-        width="180px"
       />
     </el-table>
     <!-- 分页 -->
@@ -94,6 +99,12 @@ import { MaterialApi, MaterialDTO } from '@/api/erp/basic/material/info'
 import { erpPriceTableColumnFormatter } from '@/utils'
 import { useBasicData } from '@/api/erp/basic/common'
 const { materialCategoryItem } = useBasicData()
+
+/** 是否用于采购申请：true 时显示单位列、规格列加长；false 时仅保留条码/名称/规格/分类 4 列 */
+const props = withDefaults(
+  defineProps<{ forPurchaseRequest?: boolean }>(),
+  { forPurchaseRequest: false }
+)
 
 const currentRowKey = ref()
 const currentSelectedRow = ref<MaterialDTO | null>(null)
@@ -122,6 +133,7 @@ const queryParams = reactive({
   pageNo: 1,
   pageSize: 10,
   name: undefined,
+  standard: undefined as string | undefined,
   categoryId: undefined,
   materialStatus: 0
 })
