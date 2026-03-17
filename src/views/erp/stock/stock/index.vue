@@ -10,8 +10,13 @@
       label-width="68px"
     >
       <el-form-item label="物料" prop="materialId">
-        <el-select v-model="queryParams.materialId"  clearable filterable placeholder="请选择物料" class="!w-220px" >
-          <el-option v-for="[id, name] in materialItem" :key="id" :value="id" :label="name" />
+        <el-select v-model="queryParams.materialId" clearable filterable placeholder="请选择物料（名称+规格）" class="!w-280px">
+          <el-option
+            v-for="m in materialInfoArray"
+            :key="m.id"
+            :value="m.id"
+            :label="(m.name || '') + (m.standard ? ' ' + m.standard : '')"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="仓库" prop="warehouseId">
@@ -47,7 +52,11 @@
   <ContentWrap>
     <StockForm ref="formRef" @success="getList" />
     <el-table v-loading="loading" :data="list" :stripe="true" :show-overflow-tooltip="true">
-      <el-table-column label="物料名称" align="center" prop="materialName" />
+      <el-table-column label="物料名称" align="center" min-width="200">
+        <template #default="{ row }">
+          {{ (row.materialName || '') + (row.standard ? ' ' + row.standard : '') }}
+        </template>
+      </el-table-column>
       <el-table-column label="物料单位" align="center" prop="unitName" />
       <el-table-column label="物料规格" align="center" prop="standard" />
       <el-table-column label="物料分类" align="center" prop="categoryName" />
@@ -99,7 +108,7 @@ import { StockApi, StockVO } from '@/api/erp/stock/stock'
 import { erpCountTableColumnFormatter } from '@/utils'
 import { useBasicData } from '@/api/erp/basic/common'
 import StockForm from './StockForm.vue'
-const { materialItem, warehouseItem } = useBasicData()
+const { materialInfoArray, warehouseItem } = useBasicData()
 
 /** ERP 物料库存列表 */
 defineOptions({ name: 'ErpStock' })

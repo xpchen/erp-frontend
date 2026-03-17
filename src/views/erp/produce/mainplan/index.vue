@@ -18,8 +18,13 @@
         />
       </el-form-item>
       <el-form-item label="物料" prop="materialId">
-        <el-select v-model="queryParams.materialId"  clearable filterable placeholder="请选择物料" class="!w-220px" >
-          <el-option v-for="[id, name] in materialItem" :key="id" :value="id" :label="name" />
+        <el-select v-model="queryParams.materialId" clearable filterable placeholder="请选择物料（名称+规格）" class="!w-280px">
+          <el-option
+            v-for="m in materialInfoArray"
+            :key="m.id"
+            :value="m.id"
+            :label="(m.name || '') + (m.standard ? ' ' + m.standard : '')"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="规格型号" prop="mode">
@@ -185,7 +190,7 @@ import MainPlanForm from './MainPlanForm.vue'
 import { useBasicData } from '@/api/erp/basic/common'
 import AutoGenerateMainPlan from '@/views/erp/produce/mainplan/AutoGenerateMainPlan.vue'
 
-const { materialItem } = useBasicData()
+const { materialInfoArray } = useBasicData()
 
 /** 主计划 列表 */
 defineOptions({ name: 'ErpMainPlan' })

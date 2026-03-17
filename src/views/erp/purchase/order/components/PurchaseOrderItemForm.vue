@@ -24,12 +24,23 @@
         </template>
       </el-table-column>
       <el-table-column label="序号" type="index" align="center" width="60" />
-      <el-table-column label="物料名称" min-width="180">
+      <el-table-column label="物料名称" min-width="280">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.materialId`" :rules="formRules.materialId" class="mb-0px!">
-            <el-select v-model="row.materialId"  clearable filterable placeholder="请选择物料" class="!w-220px" @change="onChangeMaterial($event, row)">
-              <el-option v-for="[id, name] in materialItem" :key="id" :value="id" :label="name" />
-            </el-select>
+            <el-input
+              v-model="row.materialName"
+              placeholder="点击选择物料"
+              readonly
+              class="!w-260px"
+              @click="disabled ? undefined : openMaterialDrawer(row)"
+            />
+          </el-form-item>
+        </template>
+      </el-table-column>
+      <el-table-column label="规格" min-width="160">
+        <template #default="{ row }">
+          <el-form-item class="mb-0px!">
+            <el-input v-model="row.materialStandard" placeholder="" readonly disabled class="!w-140px" />
           </el-form-item>
         </template>
       </el-table-column>
@@ -44,13 +55,6 @@
         <template #default="{ row }">
           <el-form-item class="mb-0px!">
             <el-input disabled v-model="row.materialBarCode" />
-          </el-form-item>
-        </template>
-      </el-table-column>
-      <el-table-column label="规格" min-width="150">
-        <template #default="{ row }">
-          <el-form-item class="mb-0px!">
-            <el-input disabled v-model="row.materialStandard" />
           </el-form-item>
         </template>
       </el-table-column>
@@ -153,14 +157,18 @@
       </el-table-column>
     </el-table>
   </el-form>
+  <el-drawer v-model="drawer" title="物料选择" :direction="direction" size="55%" :modal-append-to-body="true" :append-to-body="true">
+    <QueryMaterialIndex @select="handleMaterialSelect" />
+  </el-drawer>
   <el-row justify="center" class="mt-3" v-if="!disabled">
     <el-button @click="handleAdd" round>+ 添加采购物料</el-button>
   </el-row>
 </template>
 <script setup lang="ts">
+import type { DrawerProps } from 'element-plus'
 import { StockApi } from '@/api/erp/stock/stock'
-import { useBasicData } from '@/api/erp/basic/common'
-const { materialItem, materialInfoArray } = useBasicData()
+import { MaterialDTO } from '@/api/erp/basic/material/info'
+import QueryMaterialIndex from '@/views/erp/basic/material/info/components/QueryMaterialIndex.vue'
 import {
   erpCountInputFormatter,
   erpPriceInputFormatter,
@@ -168,10 +176,16 @@ import {
   getSumValue
 } from '@/utils'
 
-const props = defineProps<{
-  items: undefined
-  disabled: false
-}>()
+const props = withDefaults(
+  defineProps<{
+    items: undefined
+    disabled?: boolean
+  }>(),
+  { disabled: false }
+)
+const direction = ref<DrawerProps['direction']>('rtl')
+const drawer = ref(false)
+const currentEditRow = ref<any>(null)
 const formLoading = ref(false) // 表单的加载中
 const formData = ref([])
 const formRules = reactive({
@@ -187,7 +201,6 @@ watch(
   async (val) => {
     formData.value = val
     if (val) {
-      debugger;
       for (const row of val) {
         await setStockCount(row);
       }
@@ -243,9 +256,10 @@ const handleAdd = () => {
   const row = {
     id: undefined,
     materialId: undefined,
-    materialUnitName: undefined, // 物料单位
-    materialBarCode: undefined, // 物料条码
-    materialStandard: undefined, // 物料规格
+    materialName: undefined,
+    materialUnitName: undefined,
+    materialBarCode: undefined,
+    materialStandard: undefined,
     materialPrice: undefined,
     stockCount: undefined,
     count: 1,
@@ -264,21 +278,28 @@ const handleDelete = (index: number) => {
   formData.value.splice(index, 1)
 }
 
-/** 处理物料变更 */
-const onChangeMaterial = (materialId, row) => {
-  const material = materialInfoArray.value.find((item) => item.id === materialId)
-  if (material) {
-    row.materialUnitName = material.unitName
-    row.materialBarCode = material.barCode
-    row.materialPrice = material.purchasePrice
+/** 打开物料选择抽屉 */
+const openMaterialDrawer = (row: any) => {
+  currentEditRow.value = row
+  drawer.value = true
+}
+
+/** 处理物料选择（从抽屉选择后回填） */
+const handleMaterialSelect = (material: MaterialDTO) => {
+  if (currentEditRow.value) {
+    currentEditRow.value.materialId = material.id
+    currentEditRow.value.materialName = material.name
+    currentEditRow.value.materialStandard = material.standard
+    currentEditRow.value.materialBarCode = material.barCode
+    currentEditRow.value.materialUnitName = material.unitName
+    currentEditRow.value.materialPrice = material.purchasePrice
+    setStockCount(currentEditRow.value)
   }
-  // 加载库存
-  setStockCount(row)
+  drawer.value = false
 }
 
 /** 加载库存 */
 const setStockCount = async (row: any) => {
-  debugger
   if (!row.materialId) {
     return
   }

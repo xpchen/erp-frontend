@@ -22,14 +22,17 @@
         <el-row :gutter="20">
       <el-col :span="12">
         <el-form-item label="物料类别" prop="categoryId">
-          <el-select v-model="formData.categoryId" class="!w-240px" clearable placeholder="请选择类别">
-          <el-option
-            v-for="[id, name] in materialCategoryItem"
-            :key="id"
-            :value="id"
-            :label="name"
+          <el-tree-select
+            v-model="formData.categoryId"
+            :data="materialCategoryTree"
+            :props="{ label: 'name', value: 'id' }"
+            check-strictly
+            clearable
+            filterable
+            placeholder="请选择类别"
+            class="!w-240px"
+            node-key="id"
           />
-        </el-select>
         </el-form-item>
       </el-col>
 
@@ -136,7 +139,18 @@ import { MaterialApi, MaterialDTO } from '@/api/erp/basic/material/info'
 import { CommonStatusEnum } from '@/utils/constants'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { useBasicData } from '@/api/erp/basic/common'
-const { materialCategoryItem, materialUnitItem } = useBasicData()
+import { MaterialCategoryApi } from '@/api/erp/basic/material/category'
+import { handleTree } from '@/utils/tree'
+
+const { materialUnitItem } = useBasicData()
+const materialCategoryTree = ref<any[]>([])
+const getMaterialCategoryTree = async () => {
+  const data = await MaterialCategoryApi.getMaterialCategoryList({})
+  materialCategoryTree.value = handleTree(data || [], 'id', 'parentId')
+}
+onMounted(() => {
+  getMaterialCategoryTree()
+})
 
 /** ERP 物料 表单 */
 defineOptions({ name: 'MaterialForm' })

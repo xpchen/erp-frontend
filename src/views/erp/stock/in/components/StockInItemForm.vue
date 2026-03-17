@@ -23,12 +23,27 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="物料名称" min-width="180">
+      <el-table-column label="物料名称" min-width="200">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.materialId`" :rules="formRules.materialId" class="mb-0px!">
-            <el-select v-model="row.materialId"  clearable filterable placeholder="请选择物料" class="!w-220px" @change="onChangeMaterial($event, row)">
-              <el-option v-for="[id, name] in materialItem" :key="id" :value="id" :label="name" />
+            <el-select v-model="row.materialId" clearable filterable placeholder="请选择物料（名称+规格）" class="!w-260px" @change="onChangeMaterial($event, row)">
+              <el-option
+                v-for="m in materialInfoArray"
+                :key="m.id"
+                :value="m.id"
+                :label="(m.name || '') + (m.standard ? ' ' + m.standard : '')"
+              >
+                <span>{{ m.name || '-' }}</span>
+                <span class="ml-2 text-gray-500">{{ m.standard || '-' }}</span>
+              </el-option>
             </el-select>
+          </el-form-item>
+        </template>
+      </el-table-column>
+      <el-table-column label="规格" min-width="120">
+        <template #default="{ row }">
+          <el-form-item class="mb-0px!">
+            <el-input v-model="row.materialStandard" placeholder="" readonly disabled class="!w-100px" />
           </el-form-item>
         </template>
       </el-table-column>
@@ -115,7 +130,7 @@
 import { checkPermi } from "@/utils/permission" 
 import { StockApi } from '@/api/erp/stock/stock'
 import { useBasicData } from '@/api/erp/basic/common'
-const { warehouseItem, materialInfoArray, materialItem, defaultWarehouseId } = useBasicData()
+const { warehouseItem, materialInfoArray, defaultWarehouseId } = useBasicData()
 import {
   erpCountInputFormatter,
   erpPriceInputFormatter,
@@ -188,8 +203,9 @@ const handleAdd = () => {
     id: undefined,
     warehouseId: defaultWarehouseId.value,
     materialId: undefined,
-    materialUnitName: undefined, // 物料单位
-    materialBarCode: undefined, // 物料条码
+    materialStandard: undefined,
+    materialUnitName: undefined,
+    materialBarCode: undefined,
     materialPrice: undefined,
     stockCount: undefined,
     count: 1,
@@ -212,17 +228,16 @@ const onChangeWarehouse = (warehouseId, row) => {
 
 /** 处理物料变更 */
 const onChangeMaterial = (materialId, row) => {
-  // 检查 materialInfoArray.value 是否为数组
   if (Array.isArray(materialInfoArray.value)) {
     const material = materialInfoArray.value.find(item => item.id === materialId);
     if (material) {
+      row.materialStandard = material.standard;
       row.materialUnitName = material.unitName;
       row.materialBarCode = material.barCode;
       row.materialPrice = material.minPrice;
     }
   }
-   // 加载库存
-  setStockCount(row)
+  setStockCount(row);
 };
 
 /** 加载库存 */

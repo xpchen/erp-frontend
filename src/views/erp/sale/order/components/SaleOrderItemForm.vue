@@ -13,11 +13,18 @@
       <el-table-column label="物料" min-width="180" align="center">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.materialId`" :rules="formRules.materialId" class="mb-0px!">
-            <el-input v-model="row.materialName"  placeholder="点击选择物料" readonly @click="openMaterialDrawer(row)"/>
+            <el-input v-model="row.materialName" placeholder="点击选择物料" readonly @click="openMaterialDrawer(row)"/>
           </el-form-item>
           <el-drawer v-model="drawer" title="物料选择" :direction="direction" size="60%" :modal-append-to-body="true" :append-to-body="true">
             <QueryMaterialIndex @select="handleMaterialSelect" />
           </el-drawer>
+        </template>
+      </el-table-column>
+      <el-table-column label="规格" min-width="140" align="center">
+        <template #default="{ row }">
+          <el-form-item class="mb-0px!">
+            <el-input v-model="row.materialStandard" placeholder="" readonly disabled class="!w-120px" />
+          </el-form-item>
         </template>
       </el-table-column>
       <el-table-column label="库存" min-width="100">
@@ -177,19 +184,16 @@ const openMaterialDrawer = (row: any) => {
 /** 处理物料选择 */
 const handleMaterialSelect = (material: MaterialDTO) => {
   if (currentEditRow.value) {
-    // 更新当前行的物料信息
     currentEditRow.value.materialId = material.id
     currentEditRow.value.materialName = material.name
+    currentEditRow.value.materialStandard = material.standard
     currentEditRow.value.materialUnitId = material.unitId
     currentEditRow.value.materialUnitName = material.unitName
     currentEditRow.value.materialBarCode = material.barCode
     currentEditRow.value.materialPrice = material.salePrice
-    
-    debugger;
-    // 加载库存
     setStockCount(currentEditRow.value)
   }
-  drawer.value = false  // 关闭抽屉
+  drawer.value = false
 }
 
 
@@ -249,10 +253,11 @@ const handleAdd = () => {
   const row = {
     id: undefined,
     materialId: undefined,
-    materialName: undefined, // 物料名称
-    materialUnitId: undefined, // 物料单位
-    materialUnitName: undefined, // 物料单位名称
-    materialBarCode: undefined, // 物料条码
+    materialName: undefined,
+    materialStandard: undefined,
+    materialUnitId: undefined,
+    materialUnitName: undefined,
+    materialBarCode: undefined,
     materialPrice: undefined,
     stockCount: undefined,
     count: 1,

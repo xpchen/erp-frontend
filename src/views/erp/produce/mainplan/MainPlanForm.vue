@@ -11,16 +11,23 @@
         <el-input v-model="formData.no" placeholder="编码保存后自动生成" disabled />
       </el-form-item>
       <el-form-item label="物料" prop="materialId">
-        <el-select v-model="formData.materialId" 
-         clearable filterable placeholder="请选择物料" 
-         class="!w-220px"
-         @change="onChangeMaterial($event)" >
-         <el-option
+        <el-select
+          v-model="formData.materialId"
+          clearable
+          filterable
+          placeholder="请选择物料（名称+规格）"
+          class="!w-320px"
+          @change="onChangeMaterial($event)"
+        >
+          <el-option
             v-for="item in materialList"
             :key="item.id"
-            :label="item.name"
             :value="item.id"
-          />
+            :label="(item.name || '') + (item.standard ? ' ' + item.standard : '')"
+          >
+            <span>{{ item.name || '-' }}</span>
+            <span class="ml-2 text-gray-500">{{ item.standard || '-' }}</span>
+          </el-option>
         </el-select>
       </el-form-item>
       <el-form-item label="单位" prop="unitId">
@@ -29,7 +36,7 @@
         </el-select>
       </el-form-item>
       <el-form-item label="规格型号" prop="mode">
-        <el-input v-model="formData.mode" placeholder="请输入规格型号" />
+        <el-input v-model="formData.mode" placeholder="选料后自动带出" readonly disabled />
       </el-form-item>
       <el-form-item label="物料属性" prop="materialAttr">
         <el-select v-model="formData.materialAttr" placeholder="请选择物料属性" class="!w-120px">

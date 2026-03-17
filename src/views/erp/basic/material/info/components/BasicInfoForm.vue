@@ -24,9 +24,17 @@
     <el-row :gutter="20">
       <el-col :span="12">
         <el-form-item label="物料类别" prop="categoryId">
-          <el-select v-model="formData.categoryId" clearable placeholder="请选择类别">
-            <el-option v-for="[id, name] in materialCategoryItem" :key="id" :value="id" :label="name" />
-          </el-select>
+          <el-tree-select
+            v-model="formData.categoryId"
+            :data="materialCategoryTree"
+            :props="{ label: 'name', value: 'id' }"
+            check-strictly
+            clearable
+            filterable
+            placeholder="请选择类别"
+            class="!w-1/1"
+            node-key="id"
+          />
         </el-form-item>
       </el-col>
       <el-col :span="12">
@@ -121,7 +129,18 @@ import { MaterialApi, MaterialDTO } from '@/api/erp/basic/material/info'
 import { CommonStatusEnum } from '@/utils/constants'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { useBasicData } from '@/api/erp/basic/common'
-const { materialCategoryItem, materialUnitItem } = useBasicData()
+import { MaterialCategoryApi } from '@/api/erp/basic/material/category'
+import { handleTree } from '@/utils/tree'
+
+const { materialUnitItem } = useBasicData()
+const materialCategoryTree = ref<any[]>([])
+const getMaterialCategoryTree = async () => {
+  const data = await MaterialCategoryApi.getMaterialCategoryList({})
+  materialCategoryTree.value = handleTree(data || [], 'id', 'parentId')
+}
+onMounted(() => {
+  getMaterialCategoryTree()
+})
 
 // 自定义校验函数
 const validateChangeRate = (rule, value, callback) => {

@@ -26,13 +26,13 @@
               clearable
               filterable
               @change="onChangeMaterial($event)"
-              placeholder="请选择产品"
+              placeholder="请选择产品（名称+规格）"
               :disabled="formType === 'update'"
             >
               <el-option
                 v-for="item in materialList"
                 :key="item.id"
-                :label="item.name"
+                :label="(item.name || '') + (item.standard ? ' ' + item.standard : '')"
                 :value="item.id"
               />
             </el-select>

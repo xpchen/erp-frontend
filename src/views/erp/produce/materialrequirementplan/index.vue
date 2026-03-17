@@ -51,7 +51,7 @@
   <ContentWrap class="mb-3px">
       <el-button @click="handleQuery"><Icon icon="ep:search" class="mr-5px" /> 搜索</el-button>
       <el-button @click="resetQuery"><Icon icon="ep:refresh" class="mr-5px" /> 重置</el-button>
-      <el-button type="warning" plain @click="openErpProduceMainPlanFrom" v-hasPermi="['erp:material-requirement-plan:create']" :loading="calculatingMRP">
+      <el-button type="warning" plain @click="openErpProduceMainPlanFrom" v-hasPermi="['erp:material-requirement-plan:calculation']" :loading="calculatingMRP">
           <Icon icon="fa:calculator" class="mr-5px" /> MRP运算
       </el-button>
       <el-button type="success" plain @click="batchHandleIssueTask" >

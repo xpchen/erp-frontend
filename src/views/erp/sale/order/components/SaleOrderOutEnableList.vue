@@ -26,8 +26,16 @@
           />
         </el-form-item>
         <el-form-item label="物料" prop="materialId">
-          <el-select v-model="queryParams.materialId"  clearable filterable placeholder="请选择物料" class="!w-240px" >
-            <el-option v-for="[id, name] in materialItem" :key="id" :value="id" :label="name" />
+          <el-select v-model="queryParams.materialId" clearable filterable placeholder="请选择物料（名称+规格）" class="!w-280px">
+            <el-option
+              v-for="m in materialInfoArray"
+              :key="m.id"
+              :value="m.id"
+              :label="(m.name || '') + (m.standard ? ' ' + m.standard : '')"
+            >
+              <span>{{ m.name || '-' }}</span>
+              <span class="ml-2 text-gray-500">{{ m.standard || '-' }}</span>
+            </el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="订单时间" prop="orderTime">
@@ -118,7 +126,7 @@ import { SaleOrderApi, SaleOrderVO } from '@/api/erp/sale/order'
 import { dateFormatter2 } from '@/utils/formatTime'
 import { erpCountTableColumnFormatter, erpPriceTableColumnFormatter } from '@/utils'
 import { useBasicData } from '@/api/erp/basic/common'
-const { materialItem } = useBasicData()
+const { materialInfoArray } = useBasicData()
 
 defineOptions({ name: 'ErpSaleOrderOutEnableList' })
 

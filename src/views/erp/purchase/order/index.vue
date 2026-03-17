@@ -18,8 +18,13 @@
         />
       </el-form-item>
       <el-form-item label="物料" prop="materialId">
-        <el-select v-model="queryParams.materialId"  clearable filterable placeholder="请选择物料" class="!w-220px" >
-          <el-option v-for="[id, name] in materialItem" :key="id" :value="id" :label="name" />
+        <el-select v-model="queryParams.materialId" clearable filterable placeholder="请选择物料（名称+规格）" class="!w-360px">
+          <el-option
+            v-for="m in materialInfoArray"
+            :key="m.id"
+            :value="m.id"
+            :label="(m.name || '') + (m.standard ? ' ' + m.standard : '')"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="订单时间" prop="orderTime">
@@ -249,7 +254,7 @@ import { PurchaseOrderApi, PurchaseOrderVO } from '@/api/erp/purchase/order'
 import PurchaseOrderForm from './PurchaseOrderForm.vue'
 import { erpCountTableColumnFormatter, erpPriceTableColumnFormatter } from '@/utils'
 import { useBasicData } from '@/api/erp/basic/common'
-const { materialItem, supplierItem, userItem } = useBasicData()
+const { materialInfoArray, supplierItem, userItem } = useBasicData()
 
 /** ERP 销售订单列表 */
 defineOptions({ name: 'ErpPurchaseOrder' })

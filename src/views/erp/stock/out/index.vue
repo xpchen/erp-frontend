@@ -18,8 +18,13 @@
         />
       </el-form-item>
       <el-form-item label="物料" prop="materialId">
-        <el-select v-model="queryParams.materialId"  clearable filterable placeholder="请选择物料" class="!w-220px" >
-          <el-option v-for="[id, name] in materialItem" :key="id" :value="id" :label="name" />
+        <el-select v-model="queryParams.materialId" clearable filterable placeholder="请选择物料（名称+规格）" class="!w-280px">
+          <el-option
+            v-for="m in materialInfoArray"
+            :key="m.id"
+            :value="m.id"
+            :label="(m.name || '') + (m.standard ? ' ' + m.standard : '')"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="出库时间" prop="outTime">
@@ -208,7 +213,7 @@ import { StockOutApi, StockOutVO } from '@/api/erp/stock/out'
 import StockOutForm from './StockOutForm.vue'
 import { erpCountTableColumnFormatter, erpPriceTableColumnFormatter } from '@/utils'
 import { useBasicData } from '@/api/erp/basic/common'
-const { materialItem, warehouseItem, userItem, customerItem } = useBasicData()
+const { materialInfoArray, warehouseItem, userItem, customerItem } = useBasicData()
 
 /** ERP 其它出库单列表 */
 defineOptions({ name: 'ErpStockOut' })

@@ -63,7 +63,7 @@
           v-if="selectedRows.length > 0"
           type="warning"
           @click="handlePushPurchaseOrder"
-          v-hasPermi="['erp:purchase-request:push-order']"
+          v-hasPermi="['erp:purchase-order:create']"
         >
           <Icon icon="ep:arrow-right" class="mr-5px" /> 下推采购订单
         </el-button>
@@ -152,7 +152,7 @@
               link
               type="primary"
               @click="handleUpdateStatus(scope.row.id, 20)"
-              v-hasPermi="['erp:purchase-order:update-status']"
+              v-hasPermi="['erp:purchase-request:update-status']"
               v-if="scope.row.status === 10"
             >
               审批
@@ -161,7 +161,7 @@
               link
               type="danger"
               @click="handleUpdateStatus(scope.row.id, 10)"
-              v-hasPermi="['erp:purchase-order:update-status']"
+              v-hasPermi="['erp:purchase-request:update-status']"
               v-else
             >
               反审批

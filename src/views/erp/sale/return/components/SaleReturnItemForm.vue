@@ -23,10 +23,20 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="物料名称" min-width="180">
+      <el-table-column label="物料名称" min-width="220">
         <template #default="{ row }">
           <el-form-item class="mb-0px!">
-            <el-input disabled v-model="row.materialName" />
+            <el-input
+              disabled
+              :model-value="(row.materialName || '') + (row.materialStandard ? ' ' + row.materialStandard : '')"
+            />
+          </el-form-item>
+        </template>
+      </el-table-column>
+      <el-table-column label="规格" min-width="120">
+        <template #default="{ row }">
+          <el-form-item class="mb-0px!">
+            <el-input v-model="row.materialStandard" placeholder="" readonly disabled class="!w-100px" />
           </el-form-item>
         </template>
       </el-table-column>

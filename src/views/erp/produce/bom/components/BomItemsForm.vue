@@ -31,12 +31,12 @@
               clearable
               filterable
               @change="onChangeProduct($event,row)"
-              placeholder="请选择物料"
+              placeholder="请选择物料（名称+规格）"
             >
               <el-option
                 v-for="item in materialList"
                 :key="item.id"
-                :label="item.name"
+                :label="(item.name || '') + (item.standard ? ' ' + item.standard : '')"
                 :value="item.id"
               />
             </el-select>

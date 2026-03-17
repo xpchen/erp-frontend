@@ -28,14 +28,17 @@
         />
       </el-form-item>
       <el-form-item label="物料类别" prop="categoryId">
-        <el-select v-model="queryParams.categoryId" class="!w-220px" clearable filterable placeholder="请选择类别">
-          <el-option
-            v-for="[id, name] in materialCategoryItem"
-            :key="id"
-            :value="id"
-            :label="name"
-          />
-        </el-select>
+        <el-tree-select
+          v-model="queryParams.categoryId"
+          :data="materialCategoryTree"
+          :props="{ label: 'name', value: 'id' }"
+          check-strictly
+          clearable
+          filterable
+          placeholder="请选择类别（可选父级查下属全部）"
+          class="!w-220px"
+          node-key="id"
+        />
       </el-form-item>
       <el-form-item>
         <el-button @click="handleQuery"><Icon icon="ep:search" class="mr-5px" /> 搜索</el-button>
@@ -97,13 +100,20 @@
 import { dateFormatter } from '@/utils/formatTime'
 import { MaterialApi, MaterialDTO } from '@/api/erp/basic/material/info'
 import { erpPriceTableColumnFormatter } from '@/utils'
-import { useBasicData } from '@/api/erp/basic/common'
-const { materialCategoryItem } = useBasicData()
+import { MaterialCategoryApi } from '@/api/erp/basic/material/category'
+import { handleTree } from '@/utils/tree'
+
+const materialCategoryTree = ref<any[]>([])
+const getMaterialCategoryTree = async () => {
+  const data = await MaterialCategoryApi.getMaterialCategoryList({})
+  materialCategoryTree.value = handleTree(data || [], 'id', 'parentId')
+}
 
 /** 是否用于采购申请：true 时显示单位列、规格列加长；false 时仅保留条码/名称/规格/分类 4 列 */
+/** 供应商编号：传入时仅展示该供应商下的物料（关联物料采购属性） */
 const props = withDefaults(
-  defineProps<{ forPurchaseRequest?: boolean }>(),
-  { forPurchaseRequest: false }
+  defineProps<{ forPurchaseRequest?: boolean; supplierId?: number | null }>(),
+  { forPurchaseRequest: false, supplierId: undefined }
 )
 
 const currentRowKey = ref()
@@ -142,15 +152,20 @@ const queryFormRef = ref() // 搜索的表单
 /** 查询列表 */
 const getList = async () => {
   loading.value = true
-
   try {
-    const data = await MaterialApi.getMaterialPage(queryParams)
+    const params = { ...queryParams, supplierId: props.supplierId ?? undefined }
+    const data = await MaterialApi.getMaterialPage(params)
     list.value = data.list
     total.value = data.total
   } finally {
     loading.value = false
   }
 }
+
+watch(() => props.supplierId, () => {
+  queryParams.pageNo = 1
+  getList()
+})
 
 /** 搜索按钮操作 */
 const handleQuery = () => {
@@ -174,6 +189,7 @@ watch(() => route.fullPath, async () => {
 
 /** 初始化 **/
 onMounted(() => {
+  getMaterialCategoryTree()
   getList()
 })
 </script>
