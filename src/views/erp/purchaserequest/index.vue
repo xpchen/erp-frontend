@@ -95,6 +95,9 @@
         width="100px"
       />
       <el-table-column label="物料名称" align="center" prop="materialName" width="180px"/>
+      <el-table-column label="物料规格" align="center" prop="materialStandard" width="160px">
+        <template #default="scope">{{ scope.row.materialStandard || '-' }}</template>
+      </el-table-column>
       <el-table-column label="申请数量" align="center" prop="qty" width="85px"/>
       <el-table-column label="单位" align="center" prop="unitName" width="60px"/>
       <el-table-column label="采购数量" align="center" prop="purchaseOrderQty" width="85px"/>

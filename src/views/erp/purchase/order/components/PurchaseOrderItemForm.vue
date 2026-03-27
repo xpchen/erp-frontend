@@ -44,6 +44,27 @@
           </el-form-item>
         </template>
       </el-table-column>
+      <el-table-column label="默认供应商" min-width="180">
+        <template #default="{ row }">
+          <el-form-item class="mb-0px!">
+            <el-select
+              v-model="row.selectedSupplierId"
+              clearable
+              filterable
+              placeholder="请选择供应商"
+              class="!w-160px"
+              @change="handleRowSupplierChange"
+            >
+              <el-option
+                v-for="option in supplierOptions"
+                :key="option.id"
+                :value="option.id"
+                :label="option.name"
+              />
+            </el-select>
+          </el-form-item>
+        </template>
+      </el-table-column>
       <el-table-column label="库存" min-width="100">
         <template #default="{ row }">
           <el-form-item class="mb-0px!">
@@ -167,7 +188,8 @@
 <script setup lang="ts">
 import type { DrawerProps } from 'element-plus'
 import { StockApi } from '@/api/erp/stock/stock'
-import { MaterialDTO } from '@/api/erp/basic/material/info'
+import { MaterialApi, MaterialDTO } from '@/api/erp/basic/material/info'
+import { useBasicData } from '@/api/erp/basic/common'
 import QueryMaterialIndex from '@/views/erp/basic/material/info/components/QueryMaterialIndex.vue'
 import {
   erpCountInputFormatter,
@@ -180,9 +202,13 @@ const props = withDefaults(
   defineProps<{
     items: undefined
     disabled?: boolean
+    supplierId?: number
   }>(),
-  { disabled: false }
+  { disabled: false, supplierId: undefined }
 )
+const emit = defineEmits<{
+  (e: 'supplier-change', supplierId: number): void
+}>()
 const direction = ref<DrawerProps['direction']>('rtl')
 const drawer = ref(false)
 const currentEditRow = ref<any>(null)
@@ -194,6 +220,36 @@ const formRules = reactive({
   materialPrice: [{ required: true, message: '物料单价不能为空', trigger: 'blur' }]
 })
 const formRef = ref([]) // 表单 Ref
+const { supplierItem } = useBasicData()
+const supplierOptions = computed(() =>
+  Array.from(supplierItem.value.entries()).map(([id, name]) => ({ id, name }))
+)
+
+/** 根据物料采购属性回填「默认供应商」显示名 */
+const loadDefaultSupplierForRow = async (row: any) => {
+  if (!row?.materialId) {
+    row.defaultSupplierName = ''
+    row.defaultSupplierId = undefined
+    return
+  }
+  try {
+    const info = await MaterialApi.getPurchaseInfo(row.materialId)
+    const sid = info?.supplierId
+    if (sid != null && sid !== '') {
+      row.defaultSupplierId = Number(sid)
+      row.defaultSupplierName = supplierItem.value.get(Number(sid)) ?? `供应商#${sid}`
+      if (!row.selectedSupplierId) {
+        row.selectedSupplierId = Number(sid)
+      }
+    } else {
+      row.defaultSupplierName = ''
+      row.defaultSupplierId = undefined
+    }
+  } catch {
+    row.defaultSupplierName = ''
+    row.defaultSupplierId = undefined
+  }
+}
 
 /** 初始化设置入库项 */
 watch(
@@ -202,11 +258,36 @@ watch(
     formData.value = val
     if (val) {
       for (const row of val) {
-        await setStockCount(row);
+        await setStockCount(row)
+        await loadDefaultSupplierForRow(row)
       }
     }
   },
   { immediate: true }
+)
+
+/** 供应商字典晚到时，刷新已选行的默认供应商名称 */
+watch(
+  () => supplierItem.value?.size,
+  async () => {
+    if (!formData.value?.length) return
+    for (const row of formData.value) {
+      if (row.materialId) await loadDefaultSupplierForRow(row)
+      if (props.supplierId) {
+        row.selectedSupplierId = Number(props.supplierId)
+      }
+    }
+  }
+)
+
+watch(
+  () => props.supplierId,
+  (supplierId) => {
+    if (!formData.value?.length || !supplierId) return
+    for (const row of formData.value) {
+      row.selectedSupplierId = Number(supplierId)
+    }
+  }
 )
 
 /** 监听合同物料变化，计算合同物料总价 */
@@ -260,6 +341,9 @@ const handleAdd = () => {
     materialUnitName: undefined,
     materialBarCode: undefined,
     materialStandard: undefined,
+    defaultSupplierName: undefined,
+    defaultSupplierId: undefined,
+    selectedSupplierId: props.supplierId,
     materialPrice: undefined,
     stockCount: undefined,
     count: 1,
@@ -278,6 +362,16 @@ const handleDelete = (index: number) => {
   formData.value.splice(index, 1)
 }
 
+/** 行内选择供应商后，回填到表头并统一全行 */
+const handleRowSupplierChange = (supplierId?: number) => {
+  if (!supplierId) return
+  const normalized = Number(supplierId)
+  formData.value.forEach((row) => {
+    row.selectedSupplierId = normalized
+  })
+  emit('supplier-change', normalized)
+}
+
 /** 打开物料选择抽屉 */
 const openMaterialDrawer = (row: any) => {
   currentEditRow.value = row
@@ -285,15 +379,17 @@ const openMaterialDrawer = (row: any) => {
 }
 
 /** 处理物料选择（从抽屉选择后回填） */
-const handleMaterialSelect = (material: MaterialDTO) => {
+const handleMaterialSelect = async (material: MaterialDTO) => {
   if (currentEditRow.value) {
-    currentEditRow.value.materialId = material.id
-    currentEditRow.value.materialName = material.name
-    currentEditRow.value.materialStandard = material.standard
-    currentEditRow.value.materialBarCode = material.barCode
-    currentEditRow.value.materialUnitName = material.unitName
-    currentEditRow.value.materialPrice = material.purchasePrice
-    setStockCount(currentEditRow.value)
+    const row = currentEditRow.value
+    row.materialId = material.id
+    row.materialName = material.name
+    row.materialStandard = material.standard
+    row.materialBarCode = material.barCode
+    row.materialUnitName = material.unitName
+    row.materialPrice = material.purchasePrice
+    await setStockCount(row)
+    await loadDefaultSupplierForRow(row)
   }
   drawer.value = false
 }
@@ -311,7 +407,13 @@ const setStockCount = async (row: any) => {
 const validate = () => {
   return formRef.value.validate()
 }
-defineExpose({ validate })
+const refreshDefaultSupplierNames = async () => {
+  if (!formData.value?.length) return
+  for (const row of formData.value) {
+    await loadDefaultSupplierForRow(row)
+  }
+}
+defineExpose({ validate, refreshDefaultSupplierNames })
 
 /** 初始化 */
 onMounted(async () => {
@@ -320,9 +422,9 @@ onMounted(async () => {
     handleAdd()
   }
 
-  // 画面初始化时，为每行调用 setStockCount
   for (const row of formData.value) {
-    await setStockCount(row);
+    await setStockCount(row)
+    await loadDefaultSupplierForRow(row)
   }
 })
 </script>

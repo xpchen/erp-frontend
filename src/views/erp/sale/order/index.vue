@@ -132,6 +132,9 @@
       <el-table-column min-width="180" label="订单单号" align="center" prop="no" />
       <el-table-column min-width="180" label="客户订单号" align="center" prop="customerOrderNo" />
       <el-table-column label="物料信息" align="center" prop="materialNames" min-width="200" />
+      <el-table-column label="物料规格" align="center" prop="materialStandards" min-width="160">
+        <template #default="scope">{{ scope.row.materialStandards || '-' }}</template>
+      </el-table-column>
       <el-table-column label="客户" align="center" prop="customerName" />
       <el-table-column
         label="订单时间"

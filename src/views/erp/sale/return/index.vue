@@ -145,6 +145,9 @@
       <el-table-column width="30" label="选择" type="selection" />
       <el-table-column min-width="180" label="退货单号" align="center" prop="no" />
       <el-table-column label="物料信息" align="center" prop="materialNames" min-width="200" />
+      <el-table-column label="物料规格" align="center" prop="materialStandards" min-width="160">
+        <template #default="scope">{{ scope.row.materialStandards || '-' }}</template>
+      </el-table-column>
       <el-table-column label="客户" align="center" prop="customerName" />
       <el-table-column
         label="退货时间"

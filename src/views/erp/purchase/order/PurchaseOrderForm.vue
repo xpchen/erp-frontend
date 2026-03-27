@@ -64,7 +64,13 @@
       <ContentWrap>
         <el-tabs v-model="subTabsName" class="-mt-15px -mb-10px">
           <el-tab-pane label="订单物料清单" name="item">
-            <PurchaseOrderItemForm ref="itemFormRef" :items="formData.items" :disabled="disabled" />
+            <PurchaseOrderItemForm
+              ref="itemFormRef"
+              :items="formData.items"
+              :disabled="disabled"
+              :supplier-id="formData.supplierId"
+              @supplier-change="handleDetailSupplierChange"
+            />
           </el-tab-pane>
         </el-tabs>
       </ContentWrap>
@@ -128,10 +134,12 @@
 </template>
 <script setup lang="ts">
 import { PurchaseOrderApi, PurchaseOrderVO, RequestItem } from '@/api/erp/purchase/order'
+import { MaterialSupplierApi } from '@/api/erp/basic/material/materialSupplier'
 import PurchaseOrderItemForm from './components/PurchaseOrderItemForm.vue'
 import { erpPriceInputFormatter, erpPriceMultiply } from '@/utils'
 import { useBasicData } from '@/api/erp/basic/common'
 import QrcodeVue from 'qrcode.vue' // 引入二维码生成组件
+import { ElMessageBox } from 'element-plus'
 
 const { supplierItem, accountItem, defaultAccountId } = useBasicData()
 
@@ -169,12 +177,13 @@ const formRef = ref() // 表单 Ref
 /** 子表的表单 */
 const subTabsName = ref('item')
 const itemFormRef = ref()
+const supplierCheckLoading = ref(false)
+const skipSupplierWatch = ref(false)
 
 /** 计算 discountPrice、totalPrice 价格 */
 watch(
   () => formData.value,
   (val) => {
-    debugger;
     if (!val) {
       return
     }
@@ -189,6 +198,7 @@ watch(
 
 /** 打开弹窗 */
 const open = async (type: string, id?: number) => {
+  skipSupplierWatch.value = true
   dialogVisible.value = true
   dialogTitle.value = t('action.' + type) + '采购订单'
   formType.value = type
@@ -202,16 +212,19 @@ const open = async (type: string, id?: number) => {
       formLoading.value = false
     }
   }
-  debugger
   if (defaultAccountId.value) {
     formData.value.accountId = defaultAccountId.value
   }
+  nextTick(() => {
+    skipSupplierWatch.value = false
+  })
 }
 
 /***
  * 采购申请单下推场合
  */
 const openForPush = async (type: string, requestItems: RequestItem[]) => {
+  skipSupplierWatch.value = true
   dialogVisible.value = true
   dialogTitle.value = t('action.' + "create") + '采购订单'
   formType.value = type
@@ -228,16 +241,124 @@ const openForPush = async (type: string, requestItems: RequestItem[]) => {
   if (defaultAccountId.value) {
     formData.value.accountId = defaultAccountId.value
   }
+  nextTick(() => {
+    skipSupplierWatch.value = false
+  })
 }
 
 defineExpose({ open, openForPush }) // 提供 open 方法，用于打开弹窗
 
 /** 提交表单 */
 const emit = defineEmits(['success']) // 定义 success 事件，用于操作成功后的回调
+
+const getErrorMessage = (error: any, fallback = '操作失败') => {
+  return error?.msg || error?.message || error?.response?.data?.msg || fallback
+}
+
+const getUniqueMaterialIds = () => {
+  const ids = (formData.value.items || [])
+    .map((item: any) => Number(item.materialId))
+    .filter((id: number) => Number.isFinite(id) && id > 0)
+  return Array.from(new Set(ids))
+}
+
+const checkSupplierSupport = async (supplierId?: number) => {
+  if (!supplierId) {
+    return { unsupportedMaterialIds: [], unsupportedMaterialNames: [] }
+  }
+  const materialIds = getUniqueMaterialIds()
+  if (!materialIds.length) {
+    return { unsupportedMaterialIds: [], unsupportedMaterialNames: [] }
+  }
+  return await MaterialSupplierApi.checkSupport({ supplierId, materialIds })
+}
+
+const ensureSupplierSupportBeforeSubmit = async () => {
+  const supplierId = formData.value.supplierId
+  if (!supplierId) {
+    return true
+  }
+  const supportResult = await checkSupplierSupport(supplierId)
+  if (!supportResult.unsupportedMaterialIds?.length) {
+    return true
+  }
+  const unsupportedNames = supportResult.unsupportedMaterialNames?.join('、') || supportResult.unsupportedMaterialIds.join('、')
+  message.error(`当前供应商不支持以下物料：${unsupportedNames}`)
+  return false
+}
+
+const bindSupplierToUnsupportedMaterials = async (setDefaultSupplier: boolean, supplierId: number, unsupportedMaterialIds: number[]) => {
+  if (!unsupportedMaterialIds.length) return
+  await MaterialSupplierApi.batchBindSupplier({
+    supplierId,
+    materialIds: unsupportedMaterialIds,
+    setDefaultSupplier
+  })
+}
+
+const handleSupplierChanged = async (supplierId?: number) => {
+  if (!supplierId || disabled.value) return
+  const materialIds = getUniqueMaterialIds()
+  if (!materialIds.length || supplierCheckLoading.value) return
+  supplierCheckLoading.value = true
+  try {
+    const supportResult = await checkSupplierSupport(supplierId)
+    if (!supportResult.unsupportedMaterialIds?.length) return
+    const unsupportedNames = supportResult.unsupportedMaterialNames?.join('、') || supportResult.unsupportedMaterialIds.join('、')
+    const content =
+      `供应商当前不支持以下物料：${unsupportedNames}。` +
+      '确认：设为默认供应商并加入备选；取消：仅加入备选。'
+    let setDefaultSupplier = false
+    try {
+      await ElMessageBox.confirm(content, '供应商与物料不匹配', {
+        confirmButtonText: '设默认+备选',
+        cancelButtonText: '仅加备选',
+        distinguishCancelAndClose: true,
+        type: 'warning'
+      })
+      setDefaultSupplier = true
+    } catch (error) {
+      if (error === 'cancel') {
+        setDefaultSupplier = false
+      } else {
+        return
+      }
+    }
+    await bindSupplierToUnsupportedMaterials(
+      setDefaultSupplier,
+      supplierId,
+      supportResult.unsupportedMaterialIds
+    )
+    message.success(setDefaultSupplier ? '已设置默认供应商并加入备选供应商' : '已加入备选供应商')
+    await itemFormRef.value?.refreshDefaultSupplierNames?.()
+  } catch (error: any) {
+    message.error(getErrorMessage(error, '供应商校验失败'))
+  } finally {
+    supplierCheckLoading.value = false
+  }
+}
+
+const handleDetailSupplierChange = async (supplierId?: number) => {
+  if (!supplierId || disabled.value) return
+  if (formData.value.supplierId === supplierId) return
+  formData.value.supplierId = supplierId
+}
+
+watch(
+  () => formData.value.supplierId,
+  async (supplierId) => {
+    if (skipSupplierWatch.value) return
+    await handleSupplierChanged(supplierId)
+  }
+)
+
 const submitForm = async () => {
   // 校验表单
   await formRef.value.validate()
   await itemFormRef.value.validate()
+  if (!(await ensureSupplierSupportBeforeSubmit())) {
+    return
+  }
   // 提交请求
   formLoading.value = true
   try {
@@ -252,6 +373,8 @@ const submitForm = async () => {
     dialogVisible.value = false
     // 发送操作成功的事件
     emit('success')
+  } catch (error: any) {
+    message.error(getErrorMessage(error))
   } finally {
     formLoading.value = false
   }
@@ -259,6 +382,7 @@ const submitForm = async () => {
 
 /** 重置表单 */
 const resetForm = () => {
+  skipSupplierWatch.value = true
   formData.value = {
     id: undefined,
     supplierId: undefined,
@@ -273,6 +397,9 @@ const resetForm = () => {
     items: []
   }
   formRef.value?.resetFields()
+  nextTick(() => {
+    skipSupplierWatch.value = false
+  })
 }
 
 /** 打印当前页面 */
