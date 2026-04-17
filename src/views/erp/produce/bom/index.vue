@@ -86,8 +86,8 @@
       <el-table-column label="编码" align="center" prop="fnumber" width="180"/>
       <el-table-column label="BOM组" align="center" prop="fbomgroupname" width="100"/>
       <el-table-column label="BOM名称" align="center" prop="fname" />
-      <el-table-column label="物料名称" align="center" prop="fmaterialname" width="160"/>
-      <el-table-column label="规格型号" align="center" prop="fmodel" />
+      <el-table-column label="物料名称" align="center" prop="fmaterialname" min-width="220" />
+      <el-table-column label="规格型号" align="center" prop="fmodel" min-width="220" />
       <!-- <el-table-column label="bom类型" align="center" prop="fbomtype" /> -->
       <el-table-column label="生产数量" align="center" prop="fproductqty" width="80"/>
       <el-table-column label="计量单位" align="center" prop="funitname" width="80"/>

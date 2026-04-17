@@ -27,7 +27,13 @@
         </el-col>
         <el-col :span="8">
           <el-form-item label="供应商" prop="supplierId">
-            <el-select v-model="formData.supplierId"  clearable filterable placeholder="请选择供应商" class="!w-220px" >
+            <el-select
+              v-model="formData.supplierId"
+              clearable
+              filterable
+              placeholder="库存调整可不选"
+              class="!w-220px"
+            >
               <el-option v-for="[id, name] in supplierItem" :key="id" :value="id" :label="name" />
             </el-select>
           </el-form-item>

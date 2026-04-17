@@ -137,8 +137,8 @@
       <!-- <el-table-column label="主计划编码" align="center" prop="productMainPlanNo"  width="110px"/> -->
       <el-table-column label="销售单号" align="center" prop="saleOrderNo"  width="160px"/> 
       <el-table-column label="物料编码" align="center" prop="materialNumber" width="120px"/>
-      <el-table-column label="名称" align="center" prop="materialName" width="180px"/>
-      <el-table-column label="规格" align="center" prop="materialSpec" width="180px"/>
+      <el-table-column label="名称" align="center" prop="materialName" min-width="220" />
+      <el-table-column label="规格" align="center" prop="materialSpec" min-width="220" />
       <el-table-column label="单位" align="center" prop="materialUnit" width="80px"/>
       <!-- <el-table-column label="优先级" align="center" prop="priority">
         <template #default="scope">
@@ -154,7 +154,7 @@
       <el-table-column label="完成数量" align="center" prop="actualQuantity" width="90px"/>
       <el-table-column label="开工时间" align="center"  prop="startDate" width="110px" />
       <el-table-column label="完工时间" align="center" prop="endDate" width="110px" />
-      <el-table-column label="备注" align="center" prop="remark" />+
+      <el-table-column label="备注" align="center" prop="remark" />
     </el-table>
     <!-- 分页 -->
     <Pagination

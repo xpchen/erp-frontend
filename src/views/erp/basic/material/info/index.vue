@@ -67,27 +67,16 @@
   <!-- 列表 -->
   <ContentWrap>
     <el-table v-loading="loading" :data="list" :stripe="true" :show-overflow-tooltip="true">
-      <el-table-column label="编码" align="center" prop="barCode" />
-      <el-table-column label="名称" align="center" prop="name" />
-      <el-table-column label="规格" align="center" prop="standard" />
-      <el-table-column label="分类" align="center" prop="categoryName" />
-      <el-table-column label="单位" align="center" prop="unitName" />
+      <el-table-column label="编码" align="center" prop="barCode" min-width="120" />
+      <el-table-column label="名称" align="center" prop="name" min-width="160" />
+      <el-table-column label="规格" align="center" prop="standard" min-width="220" />
+      <el-table-column label="分类" align="center" prop="categoryName" min-width="120" />
+      <el-table-column label="单位" align="center" prop="unitName" min-width="80" />
       <el-table-column
         label="采购价格"
         align="center"
         prop="purchasePrice"
-        :formatter="erpPriceTableColumnFormatter"
-      />
-      <el-table-column
-        label="销售价格"
-        align="center"
-        prop="salePrice"
-        :formatter="erpPriceTableColumnFormatter"
-      />
-      <el-table-column
-        label="最低价格"
-        align="center"
-        prop="minPrice"
+        min-width="110"
         :formatter="erpPriceTableColumnFormatter"
       />
       <el-table-column label="状态" align="center" prop="status">
@@ -146,15 +135,13 @@ import { erpPriceTableColumnFormatter } from '@/utils'
 import { MaterialCategoryApi } from '@/api/erp/basic/material/category'
 import { handleTree } from '@/utils/tree'
 
+const MATERIAL_LIST_QUERY_KEY = 'erp_material_list_query'
+
 const materialCategoryTree = ref<any[]>([])
 const getMaterialCategoryTree = async () => {
   const data = await MaterialCategoryApi.getMaterialCategoryList({})
   materialCategoryTree.value = handleTree(data || [], 'id', 'parentId')
 }
-onMounted(() => {
-  getMaterialCategoryTree()
-})
-
 
 /** ERP 物料列表 */
 defineOptions({ name: 'ErpMaterial' })
@@ -177,6 +164,27 @@ const queryParams = reactive({
 })
 const queryFormRef = ref() // 搜索的表单
 const exportLoading = ref(false) // 导出的加载中
+
+/** 从编辑页返回时恢复列表筛选条件（sessionStorage 一次性读取） */
+const restoreMaterialListQuery = () => {
+  try {
+    const raw = sessionStorage.getItem(MATERIAL_LIST_QUERY_KEY)
+    if (!raw) {
+      return
+    }
+    sessionStorage.removeItem(MATERIAL_LIST_QUERY_KEY)
+    const saved = JSON.parse(raw) as Record<string, unknown>
+    if (saved && typeof saved === 'object') {
+      if (saved.name !== undefined) queryParams.name = saved.name as any
+      if (saved.standard !== undefined) queryParams.standard = saved.standard as any
+      if (saved.categoryId !== undefined) queryParams.categoryId = saved.categoryId as any
+      if (saved.pageNo !== undefined) queryParams.pageNo = saved.pageNo as any
+      if (saved.pageSize !== undefined) queryParams.pageSize = saved.pageSize as any
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 /** 查询列表 */
 const getList = async () => {
@@ -211,7 +219,16 @@ const openForm = (type: string, id?: number) => {
 
 /** 编辑操作 */
 const handleUpdate = (id: number) => {
-  debugger
+  sessionStorage.setItem(
+    MATERIAL_LIST_QUERY_KEY,
+    JSON.stringify({
+      name: queryParams.name,
+      standard: queryParams.standard,
+      categoryId: queryParams.categoryId,
+      pageNo: queryParams.pageNo,
+      pageSize: queryParams.pageSize
+    })
+  )
   push('/erp/material/edit?materialId=' + id + '&type=update')
 }
 
@@ -229,13 +246,14 @@ const handleDelete = async (id: number) => {
 }
 
 
-watch(() => route.fullPath, async () => {
-      // 当路由变化时执行某些操作，如重新获取数据
-      // 刷新列表
-      if(route.fullPath == "/erp/material/material"){
-        await getList()
-      }
-    });
+watch(
+  () => route.path,
+  async (path) => {
+    if (path === '/erp/material/view') {
+      await getList()
+    }
+  }
+)
 
 /** 导出按钮操作 */
 const handleExport = async () => {
@@ -253,7 +271,9 @@ const handleExport = async () => {
 }
 
 /** 初始化 **/
-onMounted(() => {
-  getList()
+onMounted(async () => {
+  await getMaterialCategoryTree()
+  restoreMaterialListQuery()
+  await getList()
 })
 </script>

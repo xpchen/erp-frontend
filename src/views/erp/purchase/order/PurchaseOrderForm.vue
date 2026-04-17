@@ -31,9 +31,21 @@
             <!-- 将供应商表单项移动到订单时间后面 -->
             <el-col :span="8">
               <el-form-item label="供应商" prop="supplierId">
-                <el-select v-model="formData.supplierId" clearable filterable placeholder="请选择供应商" class="!w-220px" >
-                  <el-option v-for="[id, name] in supplierItem" :key="id" :value="id" :label="name" />
-                </el-select> 
+                <el-select
+                  v-model="formData.supplierId"
+                  clearable
+                  filterable
+                  class="!w-220px"
+                  :disabled="supplierSelectDisabled"
+                  :placeholder="supplierSelectPlaceholder"
+                >
+                  <el-option
+                    v-for="opt in headerSupplierOptions"
+                    :key="opt.id"
+                    :value="opt.id"
+                    :label="opt.name"
+                  />
+                </el-select>
               </el-form-item>
             </el-col>
           </el-row>
@@ -139,7 +151,6 @@ import PurchaseOrderItemForm from './components/PurchaseOrderItemForm.vue'
 import { erpPriceInputFormatter, erpPriceMultiply } from '@/utils'
 import { useBasicData } from '@/api/erp/basic/common'
 import QrcodeVue from 'qrcode.vue' // 引入二维码生成组件
-import { ElMessageBox } from 'element-plus'
 
 const { supplierItem, accountItem, defaultAccountId } = useBasicData()
 
@@ -177,8 +188,57 @@ const formRef = ref() // 表单 Ref
 /** 子表的表单 */
 const subTabsName = ref('item')
 const itemFormRef = ref()
-const supplierCheckLoading = ref(false)
 const skipSupplierWatch = ref(false)
+
+/** 各已选物料「默认+备选」供应商交集（与明细下拉一致） */
+const getOrderLevelAllowedSupplierIds = (items: any[] | undefined) => {
+  const rows = (items || []).filter((r: any) => r.materialId)
+  if (!rows.length) return []
+  let ids = new Set<number>(rows[0].allowedSupplierIds || [])
+  for (let i = 1; i < rows.length; i++) {
+    const next = new Set<number>(rows[i].allowedSupplierIds || [])
+    ids = new Set([...ids].filter((id) => next.has(id)))
+  }
+  return Array.from(ids).sort((a, b) => a - b)
+}
+
+const headerSupplierOptions = computed(() => {
+  const allowed = getOrderLevelAllowedSupplierIds(formData.value.items)
+  const opts = allowed.map((id) => ({
+    id,
+    name: supplierItem.value.get(id) ?? `供应商#${id}`
+  }))
+  const sidRaw = formData.value.supplierId
+  if (sidRaw != null) {
+    const sid = Number(sidRaw)
+    if (!opts.some((o) => o.id === sid)) {
+      const baseName = supplierItem.value.get(sid) ?? `供应商#${sid}`
+      const hint =
+        allowed.length === 0
+          ? '（物料未维护供应商，请维护主数据）'
+          : '（不在可选范围，请重选或维护主数据）'
+      opts.push({ id: sid, name: baseName + hint })
+    }
+  }
+  return opts
+})
+
+const materialRowsInItems = computed(() =>
+  (formData.value.items || []).filter((r: any) => r.materialId)
+)
+
+const supplierSelectDisabled = computed(() => {
+  if (disabled.value) return true
+  if (!materialRowsInItems.value.length) return true
+  return headerSupplierOptions.value.length === 0
+})
+
+const supplierSelectPlaceholder = computed(() => {
+  if (disabled.value) return '请选择供应商'
+  if (!materialRowsInItems.value.length) return '请先添加并选择物料'
+  if (!headerSupplierOptions.value.length) return '请维护物料默认/备选供应商'
+  return '请选择供应商'
+})
 
 /** 计算 discountPrice、totalPrice 价格 */
 watch(
@@ -287,75 +347,32 @@ const ensureSupplierSupportBeforeSubmit = async () => {
   return false
 }
 
-const bindSupplierToUnsupportedMaterials = async (setDefaultSupplier: boolean, supplierId: number, unsupportedMaterialIds: number[]) => {
-  if (!unsupportedMaterialIds.length) return
-  await MaterialSupplierApi.batchBindSupplier({
-    supplierId,
-    materialIds: unsupportedMaterialIds,
-    setDefaultSupplier
-  })
-}
-
-const handleSupplierChanged = async (supplierId?: number) => {
-  if (!supplierId || disabled.value) return
-  const materialIds = getUniqueMaterialIds()
-  if (!materialIds.length || supplierCheckLoading.value) return
-  supplierCheckLoading.value = true
-  try {
-    const supportResult = await checkSupplierSupport(supplierId)
-    if (!supportResult.unsupportedMaterialIds?.length) return
-    const unsupportedNames = supportResult.unsupportedMaterialNames?.join('、') || supportResult.unsupportedMaterialIds.join('、')
-    const content =
-      `供应商当前不支持以下物料：${unsupportedNames}。` +
-      '确认：设为默认供应商并加入备选；取消：仅加入备选。'
-    let setDefaultSupplier = false
-    try {
-      await ElMessageBox.confirm(content, '供应商与物料不匹配', {
-        confirmButtonText: '设默认+备选',
-        cancelButtonText: '仅加备选',
-        distinguishCancelAndClose: true,
-        type: 'warning'
-      })
-      setDefaultSupplier = true
-    } catch (error) {
-      if (error === 'cancel') {
-        setDefaultSupplier = false
-      } else {
-        return
-      }
-    }
-    await bindSupplierToUnsupportedMaterials(
-      setDefaultSupplier,
-      supplierId,
-      supportResult.unsupportedMaterialIds
-    )
-    message.success(setDefaultSupplier ? '已设置默认供应商并加入备选供应商' : '已加入备选供应商')
-    await itemFormRef.value?.refreshDefaultSupplierNames?.()
-  } catch (error: any) {
-    message.error(getErrorMessage(error, '供应商校验失败'))
-  } finally {
-    supplierCheckLoading.value = false
-  }
-}
-
-const handleDetailSupplierChange = async (supplierId?: number) => {
-  if (!supplierId || disabled.value) return
+const handleDetailSupplierChange = (supplierId?: number) => {
+  if (disabled.value) return
   if (formData.value.supplierId === supplierId) return
   formData.value.supplierId = supplierId
 }
-
-watch(
-  () => formData.value.supplierId,
-  async (supplierId) => {
-    if (skipSupplierWatch.value) return
-    await handleSupplierChanged(supplierId)
-  }
-)
 
 const submitForm = async () => {
   // 校验表单
   await formRef.value.validate()
   await itemFormRef.value.validate()
+  const items = formData.value.items || []
+  for (const item of items) {
+    if (!item.materialId) continue
+    if (!item.allowedSupplierIds?.length) {
+      message.error(
+        `物料「${item.materialName || item.materialId}」未维护默认或备选供应商，请先在物料采购属性中维护后再保存。`
+      )
+      return
+    }
+  }
+  const allowed = getOrderLevelAllowedSupplierIds(items)
+  const sid = formData.value.supplierId != null ? Number(formData.value.supplierId) : NaN
+  if (!Number.isFinite(sid) || !allowed.includes(sid)) {
+    message.error('请选择供应商，且必须为当前各物料默认/备选供应商的交集。若无交集，请调整物料或主数据。')
+    return
+  }
   if (!(await ensureSupplierSupportBeforeSubmit())) {
     return
   }

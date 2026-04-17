@@ -135,10 +135,10 @@ const queryParams = reactive({
 })
 const queryFormRef = ref() // 搜索的表单
 
-/** 选中行 */
-const currentRowValue = ref(undefined) // 选中行的 value
-const currentRow = ref(undefined) // 选中行
-const handleCurrentChange = (row) => {
+/** 选中行（避免 ref(undefined) 推断为 never，导致 submit 中访问 id 报 TS 错） */
+const currentRowValue = ref<number | undefined>(undefined)
+const currentRow = ref<PurchaseOrderVO | undefined>(undefined)
+const handleCurrentChange = (row: PurchaseOrderVO) => {
   currentRow.value = row
 }
 
@@ -155,11 +155,17 @@ defineExpose({ open }) // 提供 open 方法，用于打开弹窗
 const emits = defineEmits<{
   (e: 'success', value: PurchaseOrderVO): void
 }>()
-const submitForm = () => {
+const submitForm = async () => {
+  if (!currentRow.value?.id) {
+    return
+  }
+  loading.value = true
   try {
-    emits('success', currentRow.value)
+    // 分页行可能不含完整明细或规格；拉详情确保入库子表含 materialStandard 等
+    const fullOrder = await PurchaseOrderApi.getPurchaseOrder(currentRow.value.id)
+    emits('success', fullOrder ?? currentRow.value)
   } finally {
-    // 关闭弹窗
+    loading.value = false
     dialogVisible.value = false
   }
 }

@@ -7,7 +7,13 @@
     label-width="0px"
     :inline-message="true"
   >
-    <el-table :data="formData" class="-mt-10px" @selection-change="handleSelectionChange" ref="tableRef">
+    <el-table
+      :data="formData"
+      class="-mt-10px"
+      :show-overflow-tooltip="true"
+      @selection-change="handleSelectionChange"
+      ref="tableRef"
+    >
       <el-table-column type="selection" width="55" />
       <el-table-column label="序号" type="index" width="60" />
       <el-table-column label="工序" min-width="120" align="center">
@@ -24,14 +30,14 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="物料名称" min-width="150" align="center">
+      <el-table-column label="物料名称" min-width="220" align="center">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.materialName`" :rules="formRules.materialName" class="mb-0px!">
             <el-input v-model="row.materialName" placeholder="请输入物料名称" disabled/>
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="物料规格" min-width="150" align="center">
+      <el-table-column label="物料规格" min-width="220" align="center">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.materialSpec`" :rules="formRules.materialSpec" class="mb-0px!">
             <el-input v-model="row.materialSpec" placeholder="请输入物料规格" disabled/>
@@ -167,7 +173,6 @@ const validate = () => {
 
 /** 表单值 */
 const getData = () => {
-  debugger
   return formData.value
 }
 

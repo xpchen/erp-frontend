@@ -114,9 +114,9 @@
   <ContentWrap>
     <el-table v-loading="loading" :data="list" :stripe="true" :show-overflow-tooltip="true">
       <el-table-column label="计划编码" align="center" prop="no" />
-      <el-table-column label="物料" align="center" prop="materialName" />
-      <el-table-column label="单位" align="center" prop="unitName" />
-      <el-table-column label="规格型号" align="center" prop="mode" />
+      <el-table-column label="物料" align="center" prop="materialName" min-width="220" />
+      <el-table-column label="单位" align="center" prop="unitName" min-width="80" />
+      <el-table-column label="规格型号" align="center" prop="mode" min-width="220" />
       <el-table-column label="数量" align="center" prop="qty" />
       <el-table-column
         label="开工日期"

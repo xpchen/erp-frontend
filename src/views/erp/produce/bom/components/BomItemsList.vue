@@ -10,10 +10,10 @@
     >
       <el-table-column label="序号" align="left" prop="fseqShow" width="100"/>
       <el-table-column label="工序" align="center" prop="fprocessname" width="100"/>
-      <el-table-column label="物料名称" align="center" prop="fmaterialname" width="180"/>
+      <el-table-column label="物料名称" align="center" prop="fmaterialname" min-width="220" />
       <el-table-column label="物料属性" align="center" prop="fmaterialpropname" />
       <el-table-column label="计量单位" align="center" prop="funitname" />
-      <el-table-column label="规格型号" align="center" prop="fmodel" />
+      <el-table-column label="规格型号" align="center" prop="fmodel" min-width="220" />
       <el-table-column label="消耗定额" align="center" prop="fconsumefixqty" />
       <el-table-column label="采购单位" align="center" prop="unitPurchaseName" />
       <el-table-column label="换算比例" align="center" prop="changeRate" />

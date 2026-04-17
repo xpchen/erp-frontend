@@ -44,19 +44,26 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="默认供应商" min-width="180">
+      <el-table-column label="默认供应商" min-width="200">
         <template #default="{ row }">
           <el-form-item class="mb-0px!">
             <el-select
               v-model="row.selectedSupplierId"
               clearable
               filterable
-              placeholder="请选择供应商"
-              class="!w-160px"
+              :disabled="!row.materialId || (orderLevelAllowedSupplierIds.length === 0 && orderLevelSupplierOptions.length === 0)"
+              :placeholder="
+                !row.materialId
+                  ? '请先选择物料'
+                  : orderLevelAllowedSupplierIds.length === 0 && orderLevelSupplierOptions.length === 0
+                    ? '请维护默认/备选供应商'
+                    : '请选择供应商'
+              "
+              class="!w-180px"
               @change="handleRowSupplierChange"
             >
               <el-option
-                v-for="option in supplierOptions"
+                v-for="option in orderLevelSupplierOptions"
                 :key="option.id"
                 :value="option.id"
                 :label="option.name"
@@ -123,7 +130,7 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="税率（%）"  min-width="115" v-if="false">
+      <el-table-column label="税率（%）" min-width="115">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.taxPercent`" class="mb-0px!">
             <el-input-number
@@ -136,7 +143,7 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="税额" prop="taxPrice"  min-width="120" v-if="false">
+      <el-table-column label="税额" prop="taxPrice" min-width="120">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.taxPrice`" class="mb-0px!">
             <el-form-item :prop="`${$index}.taxPrice`" class="mb-0px!">
@@ -145,7 +152,7 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="税额合计" prop="totalPrice" min-width="100" v-if="false">
+      <el-table-column label="税额合计" prop="totalPrice" min-width="100">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.totalPrice`" class="mb-0px!">
             <el-input disabled v-model="row.totalPrice" :formatter="erpPriceInputFormatter" />
@@ -189,6 +196,7 @@
 import type { DrawerProps } from 'element-plus'
 import { StockApi } from '@/api/erp/stock/stock'
 import { MaterialApi, MaterialDTO } from '@/api/erp/basic/material/info'
+import { MaterialSupplierApi } from '@/api/erp/basic/material/materialSupplier'
 import { useBasicData } from '@/api/erp/basic/common'
 import QueryMaterialIndex from '@/views/erp/basic/material/info/components/QueryMaterialIndex.vue'
 import {
@@ -207,8 +215,9 @@ const props = withDefaults(
   { disabled: false, supplierId: undefined }
 )
 const emit = defineEmits<{
-  (e: 'supplier-change', supplierId: number): void
+  (e: 'supplier-change', supplierId: number | undefined): void
 }>()
+const message = useMessage()
 const direction = ref<DrawerProps['direction']>('rtl')
 const drawer = ref(false)
 const currentEditRow = ref<any>(null)
@@ -221,34 +230,123 @@ const formRules = reactive({
 })
 const formRef = ref([]) // 表单 Ref
 const { supplierItem } = useBasicData()
-const supplierOptions = computed(() =>
-  Array.from(supplierItem.value.entries()).map(([id, name]) => ({ id, name }))
-)
 
-/** 根据物料采购属性回填「默认供应商」显示名 */
-const loadDefaultSupplierForRow = async (row: any) => {
+/** 已选物料行的「默认+备选」供应商交集，表头与各行共用同一可选范围 */
+const orderLevelAllowedSupplierIds = computed(() => {
+  const rows = (formData.value || []).filter((r: any) => r.materialId)
+  if (!rows.length) return []
+  let ids = new Set<number>(rows[0].allowedSupplierIds || [])
+  for (let i = 1; i < rows.length; i++) {
+    const next = new Set<number>(rows[i].allowedSupplierIds || [])
+    ids = new Set([...ids].filter((id) => next.has(id)))
+  }
+  return Array.from(ids).sort((a, b) => a - b)
+})
+
+const orderLevelSupplierOptions = computed(() => {
+  const allowed = orderLevelAllowedSupplierIds.value
+  const opts = allowed.map((id) => ({
+    id,
+    name: supplierItem.value.get(id) ?? `供应商#${id}`
+  }))
+  if (
+    props.disabled &&
+    props.supplierId != null &&
+    !allowed.includes(Number(props.supplierId))
+  ) {
+    const sid = Number(props.supplierId)
+    opts.push({
+      id: sid,
+      name: supplierItem.value.get(sid) ?? `供应商#${sid}`
+    })
+  } else if (!props.disabled && props.supplierId != null) {
+    const sid = Number(props.supplierId)
+    if (allowed.length > 0 && !allowed.includes(sid)) {
+      opts.push({
+        id: sid,
+        name: `${supplierItem.value.get(sid) ?? `供应商#${sid}`}（不在可选范围，请重选或维护主数据）`
+      })
+    } else if (allowed.length === 0) {
+      opts.push({
+        id: sid,
+        name: `${supplierItem.value.get(sid) ?? `供应商#${sid}`}（物料未维护供应商，请维护主数据）`
+      })
+    }
+  }
+  return opts
+})
+
+/** 加载物料采购默认供应商、备选列表，并生成本行 allowedSupplierIds */
+const loadMaterialSupplierContext = async (row: any) => {
+  row.defaultSupplierName = ''
+  row.defaultSupplierId = undefined
+  row.allowedSupplierIds = []
   if (!row?.materialId) {
-    row.defaultSupplierName = ''
-    row.defaultSupplierId = undefined
     return
   }
   try {
-    const info = await MaterialApi.getPurchaseInfo(row.materialId)
+    let info: { supplierId?: number | string } | null = null
+    try {
+      info = await MaterialApi.getPurchaseInfo(row.materialId)
+    } catch {
+      info = null
+    }
+    let alternateIds: number[] = []
+    try {
+      const list = await MaterialSupplierApi.list(row.materialId)
+      alternateIds = Array.isArray(list) ? list.map((id) => Number(id)) : []
+    } catch {
+      alternateIds = []
+    }
+    const idSet = new Set<number>()
     const sid = info?.supplierId
     if (sid != null && sid !== '') {
-      row.defaultSupplierId = Number(sid)
-      row.defaultSupplierName = supplierItem.value.get(Number(sid)) ?? `供应商#${sid}`
-      if (!row.selectedSupplierId) {
-        row.selectedSupplierId = Number(sid)
-      }
-    } else {
-      row.defaultSupplierName = ''
-      row.defaultSupplierId = undefined
+      const n = Number(sid)
+      row.defaultSupplierId = n
+      row.defaultSupplierName = supplierItem.value.get(n) ?? `供应商#${n}`
+      idSet.add(n)
     }
+    alternateIds.forEach((id) => {
+      if (Number.isFinite(id)) idSet.add(id)
+    })
+    row.allowedSupplierIds = Array.from(idSet)
   } catch {
-    row.defaultSupplierName = ''
-    row.defaultSupplierId = undefined
+    row.allowedSupplierIds = []
   }
+}
+
+/** 交集变化后，与表头供应商对齐；新建时自动推荐默认供应商 */
+const syncSupplierWithOrderContext = () => {
+  const allowed = orderLevelAllowedSupplierIds.value
+  const headerId = props.supplierId != null ? Number(props.supplierId) : undefined
+  if (allowed.length === 0) {
+    formData.value.forEach((r: any) => {
+      r.selectedSupplierId = headerId
+    })
+    return
+  }
+  if (headerId != null && allowed.includes(headerId)) {
+    formData.value.forEach((r: any) => {
+      r.selectedSupplierId = headerId
+    })
+    return
+  }
+  if (headerId != null && !allowed.includes(headerId)) {
+    formData.value.forEach((r: any) => {
+      r.selectedSupplierId = headerId
+    })
+    return
+  }
+  const prefer = formData.value.find(
+    (r: any) => r.materialId && r.defaultSupplierId && allowed.includes(Number(r.defaultSupplierId))
+  )
+  const pick = prefer
+    ? Number(prefer.defaultSupplierId)
+    : allowed[0]
+  formData.value.forEach((r: any) => {
+    r.selectedSupplierId = pick
+  })
+  emit('supplier-change', pick)
 }
 
 /** 初始化设置入库项 */
@@ -259,33 +357,42 @@ watch(
     if (val) {
       for (const row of val) {
         await setStockCount(row)
-        await loadDefaultSupplierForRow(row)
+        if (row.materialId) await loadMaterialSupplierContext(row)
       }
+      syncSupplierWithOrderContext()
     }
   },
   { immediate: true }
 )
 
-/** 供应商字典晚到时，刷新已选行的默认供应商名称 */
+/** 供应商字典晚到时，刷新已选行的供应商上下文 */
 watch(
   () => supplierItem.value?.size,
   async () => {
     if (!formData.value?.length) return
     for (const row of formData.value) {
-      if (row.materialId) await loadDefaultSupplierForRow(row)
-      if (props.supplierId) {
-        row.selectedSupplierId = Number(props.supplierId)
-      }
+      if (row.materialId) await loadMaterialSupplierContext(row)
     }
+    syncSupplierWithOrderContext()
   }
 )
 
 watch(
   () => props.supplierId,
   (supplierId) => {
-    if (!formData.value?.length || !supplierId) return
-    for (const row of formData.value) {
-      row.selectedSupplierId = Number(supplierId)
+    if (!formData.value?.length) return
+    const allowed = orderLevelAllowedSupplierIds.value
+    if (supplierId == null || supplierId === undefined) {
+      formData.value.forEach((r: any) => {
+        r.selectedSupplierId = undefined
+      })
+      return
+    }
+    const n = Number(supplierId)
+    if (allowed.length && allowed.includes(n)) {
+      formData.value.forEach((r: any) => {
+        r.selectedSupplierId = n
+      })
     }
   }
 )
@@ -300,7 +407,7 @@ watch(
     // 循环处理
     val.forEach((item) => {
       item.totalMaterialPrice = erpPriceMultiply(item.materialPrice, item.count)
-      item.taxPrice = erpPriceMultiply(item.totalMaterialPrice, item.taxPercent / 100.0)
+      item.taxPrice = erpPriceMultiply(item.totalMaterialPrice, (item.taxPercent ?? 0) / 100.0)
       if (item.totalMaterialPrice != null) {
         item.totalPrice = item.totalMaterialPrice + (item.taxPrice || 0)
       } else {
@@ -343,6 +450,7 @@ const handleAdd = () => {
     materialStandard: undefined,
     defaultSupplierName: undefined,
     defaultSupplierId: undefined,
+    allowedSupplierIds: [],
     selectedSupplierId: props.supplierId,
     materialPrice: undefined,
     stockCount: undefined,
@@ -360,14 +468,22 @@ const handleAdd = () => {
 /** 删除按钮操作 */
 const handleDelete = (index: number) => {
   formData.value.splice(index, 1)
+  nextTick(() => syncSupplierWithOrderContext())
 }
 
 /** 行内选择供应商后，回填到表头并统一全行 */
-const handleRowSupplierChange = (supplierId?: number) => {
-  if (!supplierId) return
+const handleRowSupplierChange = (supplierId?: number | null) => {
+  if (supplierId == null || supplierId === undefined) {
+    formData.value.forEach((r: any) => {
+      r.selectedSupplierId = undefined
+    })
+    emit('supplier-change', undefined)
+    return
+  }
   const normalized = Number(supplierId)
-  formData.value.forEach((row) => {
-    row.selectedSupplierId = normalized
+  if (!orderLevelAllowedSupplierIds.value.includes(normalized)) return
+  formData.value.forEach((r: any) => {
+    r.selectedSupplierId = normalized
   })
   emit('supplier-change', normalized)
 }
@@ -389,7 +505,13 @@ const handleMaterialSelect = async (material: MaterialDTO) => {
     row.materialUnitName = material.unitName
     row.materialPrice = material.purchasePrice
     await setStockCount(row)
-    await loadDefaultSupplierForRow(row)
+    await loadMaterialSupplierContext(row)
+    if (!row.allowedSupplierIds?.length) {
+      message.warning(
+        '该物料未维护默认或备选供应商，请先到「物料信息 - 采购属性」中维护后再选择供应商。'
+      )
+    }
+    syncSupplierWithOrderContext()
   }
   drawer.value = false
 }
@@ -410,8 +532,9 @@ const validate = () => {
 const refreshDefaultSupplierNames = async () => {
   if (!formData.value?.length) return
   for (const row of formData.value) {
-    await loadDefaultSupplierForRow(row)
+    if (row.materialId) await loadMaterialSupplierContext(row)
   }
+  syncSupplierWithOrderContext()
 }
 defineExpose({ validate, refreshDefaultSupplierNames })
 
@@ -424,7 +547,8 @@ onMounted(async () => {
 
   for (const row of formData.value) {
     await setStockCount(row)
-    await loadDefaultSupplierForRow(row)
+    if (row.materialId) await loadMaterialSupplierContext(row)
   }
+  syncSupplierWithOrderContext()
 })
 </script>

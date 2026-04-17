@@ -90,8 +90,8 @@
       <el-table-column label="任务名称" align="center" prop="name" width="180px" v-if="false"/>
       <el-table-column label="任务编码" align="center" prop="productionTaskNo" width="180px"/>
       <el-table-column label="物料编码" align="center" prop="materialNumber" width="180px"/>
-      <el-table-column label="物料名称" align="center" prop="materialName" width="180px"/>
-      <el-table-column label="物料规格" align="center" prop="materialSpec" />
+      <el-table-column label="物料名称" align="center" prop="materialName" min-width="220" />
+      <el-table-column label="物料规格" align="center" prop="materialSpec" min-width="220" />
       <el-table-column label="物料单位" align="center" prop="materialUnit" />
       <el-table-column label="状态" align="center" prop="status">
         <template #default="scope">

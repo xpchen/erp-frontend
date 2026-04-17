@@ -297,7 +297,6 @@ const resetForm = () => {
 
 /** 获取工艺路线列表 */
 const fetchProcessRoutes = async () => {
-  debugger
   if (!formData.value.materialId) {
     message.warning('请先选择物料')
     return
@@ -366,6 +365,18 @@ const handleReportWork = () => {
 
 const stockOutReqFormRef = ref()
 
+/** 领料/退料带入出库子表前：名称与规格分列（子表规格字段为 materialStandard） */
+const normalizeMaterialRowForStockOut = (row: Record<string, any>) => {
+  const spec = String(row.materialSpec ?? row.materialStandard ?? '').trim()
+  let name = String(row.materialName ?? '').trim()
+  if (spec && name.endsWith(spec)) {
+    name = name.slice(0, name.length - spec.length).replace(/\s+$/u, '').trim()
+  }
+  row.materialName = name
+  row.materialStandard = spec
+  row.materialSpec = spec
+}
+
 // 打开 StockOutReqForm 并传递物料数据
 const openStockOutReqForm = () => {
   // let materials = productionTaskMaterialFormRef.value.getData()
@@ -378,7 +389,8 @@ const openStockOutReqForm = () => {
   }
 
   // materials的每项里增加 生产任务的编号，明细的ID
-  materials.forEach(material => {
+  materials.forEach((material) => {
+    normalizeMaterialRowForStockOut(material)
     material.sourceBillId = formData.value.id
     material.sourceBillNo = formData.value.productionTaskNo
     material.sourceBillItemId = material.id
@@ -406,7 +418,8 @@ const openStockReturnReqForm = () => {
     return
   }
   // materials的每项里增加 生产任务的编号，明细的ID
-  materials.forEach(material => {
+  materials.forEach((material) => {
+    normalizeMaterialRowForStockOut(material)
     material.sourceBillId = formData.value.id
     material.sourceBillNo = formData.value.productionTaskNo
     material.sourceBillItemId = material.id

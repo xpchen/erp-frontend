@@ -6,11 +6,12 @@ export interface RequestItem {
   sourceBillDetailId: number // 采购申请单明细id
 }
 
-// ERP 采购订单 VO
+// ERP 采购订单 VO（与后端 ErpPurchaseOrderRespVO 对齐；分页/详情均可能含 items）
 export interface PurchaseOrderVO {
   id: number // 订单工单编号
   no: string // 采购订单号
   customerId: number // 客户编号
+  supplierId?: number
   orderTime: Date // 订单时间
   totalCount: number // 合计数量
   totalPrice: number // 合计金额，单位：元
@@ -18,6 +19,9 @@ export interface PurchaseOrderVO {
   remark: string // 备注
   outCount: number // 采购出库数量
   returnCount: number // 采购退货数量
+  discountPercent?: number
+  fileUrl?: string
+  items?: any[]
 }
 
 // ERP 采购订单 API

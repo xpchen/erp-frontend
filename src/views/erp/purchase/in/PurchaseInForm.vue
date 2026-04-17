@@ -227,6 +227,10 @@ const openPurchaseOrderInEnableList = () => {
 }
 
 const handlePurchaseOrderChange = (order: PurchaseOrderVO) => {
+  if (!order?.items?.length) {
+    message.warning('所选订单无明细，请重新选择')
+    return
+  }
   // 将订单设置到入库单
   formData.value.orderId = order.id
   formData.value.orderNo = order.no
@@ -242,7 +246,6 @@ const handlePurchaseOrderChange = (order: PurchaseOrderVO) => {
     item.orderItemId = item.id
     item.id = undefined
   })
-  debugger
   formData.value.items = order.items.filter((item) => item.count > 0)
 }
 
@@ -256,7 +259,6 @@ const submitForm = async () => {
   formLoading.value = true
   try {
     const data = formData.value as unknown as PurchaseInVO
-    debugger
     if (formType.value === 'create') {
       await PurchaseInApi.createPurchaseIn(data)
       message.success(t('common.createSuccess'))

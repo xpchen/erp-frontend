@@ -76,7 +76,6 @@ const submitForm = async () => {
   return
  }
   try {
-    debugger
     // 提交请求
     await unref(basicInfoRef)?.submitForm()
     await unref(purchaseInfoRef)?.submitForm()

@@ -23,10 +23,17 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="物料名称" min-width="180">
+      <el-table-column label="物料名称" min-width="220" show-overflow-tooltip>
         <template #default="{ row }">
           <el-form-item class="mb-0px!">
             <el-input disabled v-model="row.materialName" />
+          </el-form-item>
+        </template>
+      </el-table-column>
+      <el-table-column label="规格" min-width="200" show-overflow-tooltip>
+        <template #default="{ row }">
+          <el-form-item class="mb-0px!">
+            <el-input disabled v-model="row.materialStandard" />
           </el-form-item>
         </template>
       </el-table-column>
@@ -208,7 +215,7 @@ watch(
     // 循环处理
     val.forEach((item) => {
       item.totalMaterialPrice = erpPriceMultiply(item.materialPrice, item.count)
-      item.taxPrice = erpPriceMultiply(item.totalMaterialPrice, item.taxPercent / 100.0)
+      item.taxPrice = erpPriceMultiply(item.totalMaterialPrice, (item.taxPercent ?? 0) / 100.0)
       if (item.totalMaterialPrice != null) {
         item.totalPrice = item.totalMaterialPrice + (item.taxPrice || 0)
       } else {
@@ -246,6 +253,7 @@ const handleAdd = () => {
     id: undefined,
     materialId: undefined,
     materialUnitName: undefined, // 物料单位
+    materialStandard: undefined,
     materialBarCode: undefined, // 物料条码
     materialPrice: undefined,
     stockCount: undefined,

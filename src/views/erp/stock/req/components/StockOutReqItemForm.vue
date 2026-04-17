@@ -1,4 +1,4 @@
-Product<template>
+<template>
   <el-form
     ref="formRef"
     :model="formData"
@@ -8,7 +8,13 @@ Product<template>
     :inline-message="true"
     :disabled="disabled"
   >
-    <el-table :data="formData" show-summary :summary-method="getSummaries" class="-mt-10px">
+    <el-table
+      :data="formData"
+      show-summary
+      :summary-method="getSummaries"
+      class="-mt-10px"
+      :show-overflow-tooltip="true"
+    >
       <el-table-column label="序号" type="index" align="center" width="60" />
       <el-table-column label="仓库名称" min-width="125">
         <template #default="{ row, $index }">
@@ -23,15 +29,15 @@ Product<template>
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="物料名称" min-width="200">
+      <el-table-column label="物料名称" min-width="240" show-overflow-tooltip>
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.materialId`" :rules="formRules.materialId" class="mb-0px!">
-            <el-select v-model="row.materialId" clearable filterable placeholder="请选择物料（名称+规格）" class="!w-260px" @change="onChangeMaterial($event, row)">
+            <el-select v-model="row.materialId" clearable filterable placeholder="请选择物料" class="!w-300px" @change="onChangeMaterial($event, row)">
               <el-option
                 v-for="m in materialInfoArray"
                 :key="m.id"
                 :value="m.id"
-                :label="(m.name || '') + (m.standard ? ' ' + m.standard : '')"
+                :label="m.name || ''"
               >
                 <span>{{ m.name || '-' }}</span>
                 <span class="ml-2 text-gray-500">{{ m.standard || '-' }}</span>
@@ -40,10 +46,10 @@ Product<template>
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="规格" min-width="120">
+      <el-table-column label="规格" min-width="200" show-overflow-tooltip>
         <template #default="{ row }">
           <el-form-item class="mb-0px!">
-            <el-input v-model="row.materialStandard" placeholder="" readonly disabled class="!w-100px" />
+            <el-input v-model="row.materialStandard" placeholder="" readonly disabled class="!w-full" />
           </el-form-item>
         </template>
       </el-table-column>
@@ -175,11 +181,7 @@ const handleAdd = () => {
 }
 const formRef = ref([]) // 表单 Ref
 
-onMounted(() => {
-  // unwatch();
-  debugger
-  console.log(props.items)
-})
+onMounted(() => {})
 
 
 /** 合计 */
@@ -216,8 +218,10 @@ const onChangeWarehouse = (warehouseId, row) => {
 /** 处理物料变更 */
 const onChangeMaterial = (materialId, row) => {
   const material = materialInfoArray.value.find((item) => item.id === materialId)
-  if (material) {
-    row.materialStandard = material.standard
+    if (material) {
+    row.materialName = material.name ?? row.materialName
+    row.materialStandard =
+      material.standard ?? row.materialSpec ?? row.materialStandard ?? ''
     row.materialUnitName = material.unitName
     row.materialBarCode = material.barCode
     row.materialPrice = material.minPrice
@@ -253,8 +257,6 @@ unwatch = watch(
   () => props.items,
   async (val) => {
     if (val) {
-      debugger
-      // await new Promise((resolve) => setTimeout(resolve, 1000))
       formData.value = val
       // 每项的仓库设置成默认仓库defaultWarehouseId.value
       formData.value.forEach((item) => {

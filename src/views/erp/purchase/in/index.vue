@@ -34,9 +34,9 @@
         />
       </el-form-item>
       <el-form-item label="供应商" prop="supplierId">
-        <el-select v-model="queryParams.materialId"  clearable filterable placeholder="请选择供应商" class="!w-220px" >
-            <el-option v-for="[id, name] in supplierItem" :key="id" :value="id" :label="name" />
-          </el-select>
+        <el-select v-model="queryParams.supplierId" clearable filterable placeholder="请选择供应商" class="!w-220px">
+          <el-option v-for="[id, name] in supplierItem" :key="id" :value="id" :label="name" />
+        </el-select>
       </el-form-item>
       <el-form-item label="仓库" prop="warehouseId">
         <el-select v-model="queryParams.warehouseId"  clearable filterable placeholder="请选择仓库" class="!w-220px" >

@@ -7,7 +7,7 @@
     label-width="0px"
     :inline-message="true"
   >
-    <el-table :data="formData" class="-mt-10px">
+    <el-table :data="formData" class="-mt-10px" :show-overflow-tooltip="true">
       <el-table-column label="序号" type="index" width="50" />
       <el-table-column label="工序" min-width="150">
         <template #default="{ row, $index }">
@@ -23,13 +23,14 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="物料" min-width="180">
+      <el-table-column label="物料" min-width="220">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.fmaterialid`" :rules="formRules.fmaterialid" class="mb-0px!">
             <el-select
               v-model="row.fmaterialid"
               clearable
               filterable
+              class="!w-full"
               @change="onChangeProduct($event,row)"
               placeholder="请选择物料（名称+规格）"
             >
@@ -44,10 +45,10 @@
         </template>
       </el-table-column>
       <!-- 新增物料规格列 -->
-      <el-table-column label="物料规格" min-width="120">
+      <el-table-column label="物料规格" min-width="200">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.fmodel`" :rules="formRules.fmodel" class="mb-0px!">
-            <el-input v-model="row.fmodel" placeholder="" disabled />
+            <el-input v-model="row.fmodel" placeholder="" disabled class="!w-full" />
           </el-form-item>
         </template>
       </el-table-column>
@@ -246,6 +247,8 @@ const processList = ref<ProduceProcessVO[]>([]); // 新增：工序列表
 const materialList = ref<MaterialDTO[]>([]) // 产品列表
 const formRules = reactive({
   fmaterialid: [{ required: true, message: '物料不能为空', trigger: 'blur' }],
+  /** 规格列只读，不参与必填校验 */
+  fmodel: [],
   fmaterialprop: [{ required: true, message: '物料属性不能为空', trigger: 'blur' }],
   feffectivedate: [{ required: true, message: '生效日期不能为空', trigger: 'blur' }],
   fconsumefixqty: [{ required: true, message: '消耗定额不能为空', trigger: 'blur' }],
