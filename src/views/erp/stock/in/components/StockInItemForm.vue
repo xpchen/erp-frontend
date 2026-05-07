@@ -8,7 +8,13 @@
     :inline-message="true"
     :disabled="disabled"
   >
-    <el-table :data="formData" show-summary :summary-method="getSummaries" class="-mt-10px">
+    <el-table
+      :data="formData"
+      show-summary
+      :summary-method="getSummaries"
+      class="-mt-10px"
+      :show-overflow-tooltip="true"
+    >
       <el-table-column label="序号" type="index" align="center" width="60" />
       <el-table-column label="仓库名称" min-width="125">
         <template #default="{ row, $index }">
@@ -23,27 +29,23 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="物料名称" min-width="200">
+      <el-table-column label="物料名称" min-width="220" show-overflow-tooltip>
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.materialId`" :rules="formRules.materialId" class="mb-0px!">
-            <el-select v-model="row.materialId" clearable filterable placeholder="请选择物料（名称+规格）" class="!w-260px" @change="onChangeMaterial($event, row)">
-              <el-option
-                v-for="m in materialInfoArray"
-                :key="m.id"
-                :value="m.id"
-                :label="(m.name || '') + (m.standard ? ' ' + m.standard : '')"
-              >
-                <span>{{ m.name || '-' }}</span>
-                <span class="ml-2 text-gray-500">{{ m.standard || '-' }}</span>
-              </el-option>
-            </el-select>
+            <el-input
+              v-model="row.materialName"
+              readonly
+              placeholder="点击选择物料"
+              class="!w-260px"
+              @click="openMaterialDrawer(row)"
+            />
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="规格" min-width="120">
+      <el-table-column label="规格" min-width="240" show-overflow-tooltip>
         <template #default="{ row }">
           <el-form-item class="mb-0px!">
-            <el-input v-model="row.materialStandard" placeholder="" readonly disabled class="!w-100px" />
+            <el-input v-model="row.materialStandard" placeholder="" readonly disabled class="!w-full" />
           </el-form-item>
         </template>
       </el-table-column>
@@ -54,7 +56,7 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="条码" min-width="150">
+      <el-table-column label="条码" min-width="120">
         <template #default="{ row }">
           <el-form-item class="mb-0px!">
             <el-input disabled v-model="row.materialBarCode" />
@@ -101,14 +103,14 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="备注" min-width="150">
+      <el-table-column label="备注" min-width="120">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.remark`" class="mb-0px!">
             <el-input v-model="row.remark" placeholder="请输入备注" />
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="存放位置" min-width="150">
+      <el-table-column label="存放位置" min-width="120">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.location`" class="mb-0px!">
             <el-input v-model="row.location" placeholder="请输入存放位置" />
@@ -125,12 +127,25 @@
   <el-row justify="center" class="mt-3" v-if="!disabled">
     <el-button @click="handleAdd" round>+ 添加入库物料</el-button>
   </el-row>
+  <el-drawer
+    v-model="materialDrawerVisible"
+    title="物料选择"
+    :direction="materialDrawerDirection"
+    size="48%"
+    :modal-append-to-body="true"
+    :append-to-body="true"
+  >
+    <QueryMaterialIndex @select="handleMaterialSelect" />
+  </el-drawer>
 </template>
 <script setup lang="ts">
 import { checkPermi } from "@/utils/permission" 
 import { StockApi } from '@/api/erp/stock/stock'
 import { useBasicData } from '@/api/erp/basic/common'
 const { warehouseItem, materialInfoArray, defaultWarehouseId } = useBasicData()
+import type { DrawerProps } from 'element-plus'
+import QueryMaterialIndex from '@/views/erp/basic/material/info/components/QueryMaterialIndex.vue'
+import { MaterialDTO } from '@/api/erp/basic/material/info'
 import {
   erpCountInputFormatter,
   erpPriceInputFormatter,
@@ -151,12 +166,20 @@ const formRules = reactive({
   count: [{ required: true, message: '物料数量不能为空', trigger: 'blur' }]
 })
 const formRef = ref([]) // 表单 Ref
+const materialDrawerVisible = ref(false)
+const materialDrawerDirection = ref<DrawerProps['direction']>('rtl')
+const currentEditRow = ref<any>(null)
 
 /** 初始化设置入库项 */
 watch(
   () => props.items,
   async (val) => {
     formData.value = val
+    formData.value?.forEach((item) => {
+      if (!item.materialStandard && item.materialSpec) {
+        item.materialStandard = item.materialSpec
+      }
+    })
   },
   { immediate: true }
 )
@@ -239,6 +262,27 @@ const onChangeMaterial = (materialId, row) => {
   }
   setStockCount(row);
 };
+
+/** 打开物料选择抽屉 */
+const openMaterialDrawer = (row) => {
+  if (props.disabled) return
+  currentEditRow.value = row
+  materialDrawerVisible.value = true
+}
+
+/** 选择物料后回填当前行 */
+const handleMaterialSelect = (material: MaterialDTO) => {
+  if (!currentEditRow.value) return
+  const row = currentEditRow.value
+  row.materialId = material.id
+  row.materialName = material.name
+  row.materialStandard = material.standard ?? ''
+  row.materialUnitName = material.unitName
+  row.materialBarCode = material.barCode
+  row.materialPrice = material.minPrice
+  setStockCount(row)
+  materialDrawerVisible.value = false
+}
 
 /** 加载库存 */
 const setStockCount = async (row) => {

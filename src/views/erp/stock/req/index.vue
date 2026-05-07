@@ -124,8 +124,8 @@
     >
       <el-table-column width="30" label="选择" type="selection" />
       <el-table-column min-width="180" label="出库单号" align="center" prop="no" />
-      <el-table-column label="物料信息" align="center" prop="materialNames" min-width="280" />
-      <el-table-column label="物料规格" align="center" prop="materialStandards" min-width="220">
+      <el-table-column label="物料信息" align="center" prop="materialNames" min-width="240" />
+      <el-table-column label="物料规格" align="center" prop="materialStandards" min-width="260">
         <template #default="scope">{{ scope.row.materialStandards || '-' }}</template>
       </el-table-column>
       <el-table-column label="部门" align="center" prop="customerName" />

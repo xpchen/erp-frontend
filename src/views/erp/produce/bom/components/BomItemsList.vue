@@ -14,7 +14,13 @@
       <el-table-column label="物料属性" align="center" prop="fmaterialpropname" />
       <el-table-column label="计量单位" align="center" prop="funitname" />
       <el-table-column label="规格型号" align="center" prop="fmodel" min-width="220" />
-      <el-table-column label="消耗定额" align="center" prop="fconsumefixqty" />
+      <el-table-column
+        label="消耗定额"
+        align="center"
+        prop="fconsumefixqty"
+        :formatter="bomConsumeQuotaFormatter"
+        min-width="100"
+      />
       <el-table-column label="采购单位" align="center" prop="unitPurchaseName" />
       <el-table-column label="换算比例" align="center" prop="changeRate" />
       <el-table-column label="废品率" align="center" prop="fscrapratio" />
@@ -57,6 +63,11 @@
 import { DICT_TYPE } from '@/utils/dict'
 import { dateFormatter2 } from '@/utils/formatTime';
 import { BomApi } from '@/api/erp/produce/bom';
+import { erpNumberFormatter } from '@/utils'
+
+/** BOM 消耗定额：表格展示保留 4 位小数 */
+const bomConsumeQuotaFormatter = (_row, _column, cellValue: any) =>
+  erpNumberFormatter(cellValue, 4)
 
 const props = defineProps<{
   fparentid?: number // 单据头（主表的关联字段）

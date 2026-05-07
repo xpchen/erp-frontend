@@ -32,17 +32,13 @@
       <el-table-column label="物料名称" min-width="240" show-overflow-tooltip>
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.materialId`" :rules="formRules.materialId" class="mb-0px!">
-            <el-select v-model="row.materialId" clearable filterable placeholder="请选择物料" class="!w-300px" @change="onChangeMaterial($event, row)">
-              <el-option
-                v-for="m in materialInfoArray"
-                :key="m.id"
-                :value="m.id"
-                :label="m.name || ''"
-              >
-                <span>{{ m.name || '-' }}</span>
-                <span class="ml-2 text-gray-500">{{ m.standard || '-' }}</span>
-              </el-option>
-            </el-select>
+            <el-input
+              v-model="row.materialName"
+              readonly
+              placeholder="点击选择物料"
+              class="!w-300px"
+              @click="openMaterialDrawer(row)"
+            />
           </el-form-item>
         </template>
       </el-table-column>
@@ -124,12 +120,25 @@
   <el-row justify="center" class="mt-3" v-if="!disabled">
     <el-button @click="handleAdd" round>+ 添加出库物料</el-button>
   </el-row>
+  <el-drawer
+    v-model="materialDrawerVisible"
+    title="物料选择"
+    :direction="materialDrawerDirection"
+    size="48%"
+    :modal-append-to-body="true"
+    :append-to-body="true"
+  >
+    <QueryMaterialIndex @select="handleMaterialSelect" />
+  </el-drawer>
 </template>
 <script setup lang="ts">
 import { checkPermi } from "@/utils/permission"
 import { StockApi } from '@/api/erp/stock/stock'
 import { useBasicData } from '@/api/erp/basic/common'
 const { warehouseItem, materialInfoArray, defaultWarehouseId } = useBasicData()
+import type { DrawerProps } from 'element-plus'
+import QueryMaterialIndex from '@/views/erp/basic/material/info/components/QueryMaterialIndex.vue'
+import { MaterialDTO } from '@/api/erp/basic/material/info'
 
 import {
   erpCountInputFormatter,
@@ -151,12 +160,20 @@ const formRules = reactive({
   count: [{ required: true, message: '物料数量不能为空', trigger: 'blur' }]
 })
 const formRef = ref([]) // 表单 Ref
+const materialDrawerVisible = ref(false)
+const materialDrawerDirection = ref<DrawerProps['direction']>('rtl')
+const currentEditRow = ref<any>(null)
 
 /** 初始化设置出库项 */
 watch(
   () => props.items,
   async (val) => {
     formData.value = val
+    formData.value?.forEach((item) => {
+      if (!item.materialStandard && item.materialSpec) {
+        item.materialStandard = item.materialSpec
+      }
+    })
   },
   { immediate: true }
 )
@@ -238,6 +255,27 @@ const onChangeMaterial = (materialId, row) => {
     row.materialPrice = material.minPrice
   }
   setStockCount(row)
+}
+
+/** 打开物料选择抽屉 */
+const openMaterialDrawer = (row) => {
+  if (props.disabled) return
+  currentEditRow.value = row
+  materialDrawerVisible.value = true
+}
+
+/** 选择物料后回填当前行 */
+const handleMaterialSelect = (material: MaterialDTO) => {
+  if (!currentEditRow.value) return
+  const row = currentEditRow.value
+  row.materialId = material.id
+  row.materialName = material.name
+  row.materialStandard = material.standard ?? ''
+  row.materialUnitName = material.unitName
+  row.materialBarCode = material.barCode
+  row.materialPrice = material.minPrice
+  setStockCount(row)
+  materialDrawerVisible.value = false
 }
 
 /** 加载库存 */

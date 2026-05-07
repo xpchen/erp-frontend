@@ -59,9 +59,9 @@
     highlight-current-row
     :current-row-key="currentRowKey"
     :row-class-name="tableRowClassName">
-      <el-table-column label="条码" align="center" prop="barCode" min-width="160"/>
+      <el-table-column label="条码" align="center" prop="barCode" min-width="120"/>
       <el-table-column label="名称" align="center" prop="name" min-width="180"/>
-      <el-table-column label="规格" align="center" prop="standard" :min-width="props.forPurchaseRequest ? 220 : 200"/>
+      <el-table-column label="规格" align="center" prop="standard" :min-width="props.forPurchaseRequest ? 300 : 260"/>
       <el-table-column label="分类" align="center" prop="categoryName" min-width="140"/>
       <el-table-column v-if="props.forPurchaseRequest" label="单位" align="center" prop="unitName" min-width="80"/>
       <el-table-column

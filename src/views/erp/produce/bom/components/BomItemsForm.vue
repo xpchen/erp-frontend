@@ -75,10 +75,17 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column label="消耗定额" min-width="90">
+      <el-table-column label="消耗定额" min-width="110">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.fconsumefixqty`" :rules="formRules.fconsumefixqty" class="mb-0px!">
-            <el-input type="number" v-model="row.fconsumefixqty" placeholder="" />
+            <el-input-number
+              v-model="row.fconsumefixqty"
+              :min="0"
+              :precision="4"
+              :step="0.0001"
+              controls-position="right"
+              class="!w-full"
+            />
           </el-form-item>
         </template>
       </el-table-column>
